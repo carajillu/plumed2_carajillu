@@ -19,60 +19,65 @@
    You should have received a copy of the GNU Lesser General Public License
    along with plumed.  If not, see <http://www.gnu.org/licenses/>.
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+
+#ifdef _OPENMP
+    #include <omp.h>
+#else
+    #define omp_get_num_threads() 0
+    #define omp_get_thread_num() 0
+#endif
+
 #include "Colvar.h"
 #include "ActionRegister.h"
-
+#include "core/PlumedMain.h"
+#include "tools/Matrix.h"
+#include "tools/PDB.h"
 #include <string>
 #include <cmath>
+#include <fstream>
+#include <sstream>
+#include <iterator>
+#include <vector>
+#include <ctime>
+#include <iostream>
+#include <iomanip>
+#include <sys/time.h>
 
+// Kabsch algorithm implementation
+#include "jedi_objects/kabsch.h"
+// Lapack needed for l2-mininum norm solution
+#include "../tools/lapack/lapack.h"
+
+typedef double real;
 using namespace std;
 
 namespace PLMD {
 namespace colvar {
 
-//+PLUMEDOC COLVAR TEMPLATE
-/*
-This file provides a template for if you want to introduce a new CV.
+//Here you can put some documentation if you want
 
-<!-----You should add a description of your CV here---->
-
-\par Examples
-
-<!---You should put an example of how to use your CV here--->
-
-\plumedfile
-# This should be a sample input.
-t: TEMPLATE ATOMS=1,2
-PRINT ARG=t STRIDE=100 FILE=COLVAR
-\endplumedfile
-<!---You should reference here the other actions used in this example--->
-(see also \ref PRINT)
-
-*/
-//+ENDPLUMEDOC
-
-class Template : public Colvar {
+class jedi : public Colvar {
   bool pbc;
 
 public:
-  explicit Template(const ActionOptions&);
+  explicit jedi(const ActionOptions&);
 // active methods:
   virtual void calculate();
   static void registerKeywords(Keywords& keys);
 };
 
-PLUMED_REGISTER_ACTION(Template,"TEMPLATE")
+PLUMED_REGISTER_ACTION(jedi,"JEDI")
 
-void Template::registerKeywords(Keywords& keys) {
+void jedi::registerKeywords(Keywords& keys) {
   Colvar::registerKeywords(keys);
-  keys.addFlag("TEMPLATE_DEFAULT_OFF_FLAG",false,"flags that are by default not performed should be specified like this");
-  keys.addFlag("TEMPLATE_DEFAULT_ON_FLAG",true,"flags that are by default performed should be specified like this");
-  keys.add("compulsory","TEMPLATE_COMPULSORY","all compulsory keywords should be added like this with a description here");
-  keys.add("optional","TEMPLATE_OPTIONAL","all optional keywords that have input should be added like a description here");
+  keys.addFlag("JEDI_DEFAULT_OFF_FLAG",false,"flags that are by default not performed should be specified like this");
+  keys.addFlag("JEDI_DEFAULT_ON_FLAG",true,"flags that are by default performed should be specified like this");
+  keys.add("compulsory","JEDI_COMPULSORY","all compulsory keywords should be added like this with a description here");
+  keys.add("optional","JEDI_OPTIONAL","all optional keywords that have input should be added like a description here");
   keys.add("atoms","ATOMS","the keyword with which you specify what atoms to use should be added like this");
 }
 
-Template::Template(const ActionOptions&ao):
+jedi::jedi(const ActionOptions&ao):
   PLUMED_COLVAR_INIT(ao),
   pbc(true)
 {
@@ -96,7 +101,7 @@ Template::Template(const ActionOptions&ao):
 
 
 // calculator
-void Template::calculate() {
+void jedi::calculate() {
 
   Vector distance;
   if(pbc) {
