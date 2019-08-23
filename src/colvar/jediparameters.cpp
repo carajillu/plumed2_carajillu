@@ -8,41 +8,14 @@
 #include <cmath>
 #include <iterator>
 
+#include "Colvar.h"
+#include "ActionRegister.h"
+#include "core/PlumedMain.h"
+
+#include "jediparameters.h"
+
 using namespace std;
 
-class jediparameters
-{
-public:
-  jediparameters();
-  bool readParams(string &parameters_file);
-  double alpha;
-  double beta;
-  double gamma;
-  double theta;
-  double CC_mind;
-  double deltaCC;
-  double Emin;
-  double deltaE;
-  double BSmin;
-  double deltaBS;
-  double CC2_min;
-  double deltaCC2;
-  double GP_min;
-  double GP_max;
-  double r_hydro;
-  double deltar_hydro;
-  double V_max;
-  double deltaV_max;
-  double V_min;
-  double deltaV_min;
-  double resolution;
-  //deprecated
-  //double deltaGP1;
- //double deltaGP2;
-
-};
-
-// Constructor
 jediparameters::jediparameters()
 {
   alpha = 0.0;
@@ -66,9 +39,6 @@ jediparameters::jediparameters()
   V_min = 0.0;
   deltaV_min = 0.0;
   resolution = 0.0;
- //deltaGP1 = 0.0;
-  //deltaGP2 = 0.0;
-
 }
 
 bool jediparameters::readParams(string &parameters_file)
@@ -76,7 +46,7 @@ bool jediparameters::readParams(string &parameters_file)
   FILE* fp=fopen(parameters_file.c_str(),"r");
   if (!fp) return false;
   string line;
-  while (Tools::getline(fp, line))
+  while (PLMD::Tools::getline(fp, line))
     {
       if (line[0] == '#')
 	continue;
@@ -136,10 +106,6 @@ bool jediparameters::readParams(string &parameters_file)
 	deltaV_min = item;
       else if ( key == string("grid_resolution") )
 	resolution = item;
-      //else if ( key == string("deltaGP1") )
-      //	deltaGP1 = item;
-      //else if ( key == string("deltaGP2") )
-      //	deltaGP2 = item;
     }
   fclose(fp);
 
@@ -165,7 +131,6 @@ bool jediparameters::readParams(string &parameters_file)
   cout << "V_min  = " << V_min << endl;
   cout << "deltaV_min  = " << deltaV_min << endl;
   cout << "grid_resolution = " << resolution << endl;
-  //cout << "deltaGP1  = " << deltaGP1 << endl;
-  //cout << "deltaGP2  = " << deltaGP2 << endl;
+  
   return true;
 }
