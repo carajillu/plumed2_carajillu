@@ -16,8 +16,8 @@
 
 using namespace std;
 
-jediparameters::jediparameters()
-{
+jediparameters::jediparameters() //JCN Aug2019: Currently not being used, but left here in case we want to hardcode default params in the future
+{    
   alpha = 0.0;
   beta = 0.0;
   gamma = 0.0;
