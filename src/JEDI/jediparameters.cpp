@@ -1,3 +1,10 @@
+/*
+Code that sets the value of the parameters defined in the class jediparameters (jediparameters.h).
+Any new parameters should be set here.
+jediparameters() sets defaults but it is not being used at the moment
+readParams() reads the values of the paramaters from the parameters file.
+*/
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -9,8 +16,6 @@
 #include <iterator>
 
 #include "colvar/Colvar.h"
-#include "colvar/ActionRegister.h"
-#include "core/PlumedMain.h"
 
 #include "jediparameters.h"
 

@@ -48,6 +48,7 @@
 #include "../tools/lapack/lapack.h"
 
 #include "jediparameters.h" //Class to read JEDI parameters
+#include "getatoms.h"
 #include "kabsch.h" // kabsch algorithm for grid update
 
 
@@ -64,6 +65,8 @@ class jedi : public Colvar {
 private:  
   bool pbc;
   jediparameters params;
+  getatoms all_atoms;
+  getatoms grid;
 public:
   explicit jedi(const ActionOptions&);
 // active methods:
@@ -77,7 +80,8 @@ void jedi::registerKeywords(Keywords& keys)
 {
   Colvar::registerKeywords(keys);
   keys.add("compulsory","PARAMETERS","a file listing the parameters of the JEDI estimator.");
-  keys.add("compulsory","PDB","pdb file to experiment");
+  keys.add("compulsory","BINDINGSITE","pdbfile containing the atoms of the binding site");
+  keys.add("compulsory","GRID","PDB file containing the JEDI grid");
 }
 
 jedi::jedi(const ActionOptions&ao):
@@ -88,7 +92,17 @@ jedi::jedi(const ActionOptions&ao):
   string parameters_file;
   parse("PARAMETERS",parameters_file);
   params.readParams(parameters_file);
-  //cout << "Grid resolution is " << params.resolution << endl;
+
+  //Read binding site file
+  string pdb_bsite;
+  parse("BINDINGSITE",pdb_bsite);
+  all_atoms.readAtoms(pdb_bsite);
+
+  //Read grid file
+  string pdb_grid;
+  parse("GRID",pdb_grid);
+  grid.readAtoms(pdb_grid);
+
 
   addValue(); // to be replaced by AddValueWithDerivatives()
   setNotPeriodic();

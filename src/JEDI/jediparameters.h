@@ -1,3 +1,9 @@
+/*
+Class that reads the JEDI parameters file
+and transfers the parameters to the main
+code in the form of a jediparameters object
+*/
+
 using namespace std;
 
 
