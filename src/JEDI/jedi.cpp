@@ -49,6 +49,7 @@
 
 #include "jediparameters.h" //Class to read JEDI parameters
 #include "getatoms.h"
+
 #include "kabsch.h" // kabsch algorithm for grid update
 
 
@@ -67,6 +68,7 @@ private:
   jediparameters params;
   getatoms all_atoms;
   getatoms grid;
+  getatoms ligand;
 public:
   explicit jedi(const ActionOptions&);
 // active methods:
@@ -82,6 +84,7 @@ void jedi::registerKeywords(Keywords& keys)
   keys.add("compulsory","PARAMETERS","a file listing the parameters of the JEDI estimator.");
   keys.add("compulsory","BINDINGSITE","pdbfile containing the atoms of the binding site");
   keys.add("compulsory","GRID","PDB file containing the JEDI grid");
+  keys.add("optional","LIGAND","PDB file containing a known ligand (Optional)");
 }
 
 jedi::jedi(const ActionOptions&ao):
@@ -94,19 +97,52 @@ jedi::jedi(const ActionOptions&ao):
   params.readParams(parameters_file);
 
   //Read binding site file
+  cout << "*********************************" << endl;
   string pdb_bsite;
   parse("BINDINGSITE",pdb_bsite);
   all_atoms.readAtoms(pdb_bsite);
+  cout << "Loaded file " << pdb_bsite << " and found " << all_atoms.atomnumbers.size() << " elements." << endl;
+  cout << "Moving center of geometry towards origin (0,0,0)" << endl;
+  vector<double> cog_atoms;
+  all_atoms.center_atoms(all_atoms.positions,cog_atoms);
+  cout << "Center of geometry went from: " << all_atoms.cog0[0] << "," << all_atoms.cog0[1] << "," << all_atoms.cog0[2] << " to " << \
+                                              all_atoms.cog[0] << "," << all_atoms.cog[1] << "," << all_atoms.cog[2] << endl;
+  requestAtoms(all_atoms.atomnumbers);
 
   //Read grid file
+  cout << "*********************************" << endl;
   string pdb_grid;
   parse("GRID",pdb_grid);
   grid.readAtoms(pdb_grid);
+  cout << "Loaded file " << pdb_grid << " and found " << grid.atomnumbers.size() << " elements." << endl;
+  cout << "Moving center of geometry towards origin (0,0,0)" << endl;
+  grid.center_atoms(grid.positions,all_atoms.cog0);
+  cout << "Center of geometry went from: " << grid.cog0[0] << "," << grid.cog0[1] << "," << grid.cog0[2] << " to " << \
+                                              grid.cog[0] << "," << grid.cog[1] << "," << grid.cog[2] << endl;
+  void calculate_neighbours();
+  void rescale_activities();
 
+
+  //Read reference ligand file (to be deprecated)
+  string pdb_ligand;
+  parse("LIGAND",pdb_ligand);
+  if(pdb_ligand.length() > 0)
+  {
+   cout << "*********************************" << endl;
+   ligand.readAtoms(pdb_ligand);
+   cout << "Loaded file " << pdb_ligand << " and found " << ligand.atomnumbers.size() << " elements." << endl;
+   cout << "Moving center of geometry towards origin (0,0,0)" << endl;
+   ligand.center_atoms(ligand.positions,all_atoms.cog0);
+   cout << "Center of geometry went from: " << ligand.cog0[0] << "," << ligand.cog0[1] << "," << ligand.cog0[2] << " to " << \
+                                              ligand.cog[0] << "," << ligand.cog[1] << "," << ligand.cog[2] << endl;
+  }
+
+  cout << "*********************************" << endl;
+  checkRead();
 
   addValue(); // to be replaced by AddValueWithDerivatives()
   setNotPeriodic();
-  checkRead();
+  
 }
 
 
