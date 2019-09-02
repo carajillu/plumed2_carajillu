@@ -18,7 +18,7 @@ getatoms::getatoms()
 {   
 }
 
-bool getatoms::readAtoms(string &pdb_file)
+void getatoms::readAtoms(string &pdb_file)
   {
     PLMD::PDB pdb_handle;
     if( !pdb_handle.read(pdb_file,false,0.1)) //PDB files are always in angstroms, so we need to rescale the coordinates by a factor of 10
@@ -32,8 +32,6 @@ bool getatoms::readAtoms(string &pdb_file)
       {
        atomnames.push_back(pdb_handle.getAtomName(atomnumbers[j]));
       }
-    
-    return true;
   }
 
 /*
@@ -49,7 +47,7 @@ This is done because we want to center the binding site on the origin of coordin
 relative location of the grid and the ligand (if any) with respect to the binding site, so grid and ligand are
 potentially centered on a point slightly displaced from the origin.
 */
-bool getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog_in)
+void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog_in)
   {
     
     /* Depending on the size of cog_in, we decide if we have to calculate a
@@ -115,6 +113,4 @@ bool getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog
         cog[1] += positions[j][1]/positions.size();
         cog[2] += positions[j][2]/positions.size();
        }
-    
-    return true;
    }

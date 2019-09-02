@@ -46,7 +46,7 @@ jediparameters::jediparameters() //JCN Aug2019: Currently not being used, but le
   resolution = 0.0;
 }
 
-bool jediparameters::readParams(string &parameters_file)
+void jediparameters::readParams(string &parameters_file)
 {
   FILE* fp=fopen(parameters_file.c_str(),"r");
   if (!fp)
@@ -141,6 +141,4 @@ bool jediparameters::readParams(string &parameters_file)
   cout << "V_min  = " << V_min << endl;
   cout << "deltaV_min  = " << deltaV_min << endl;
   cout << "grid_resolution = " << resolution << endl;
-  
-  return true;
 }

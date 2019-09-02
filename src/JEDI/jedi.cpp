@@ -47,8 +47,12 @@
 // Lapack needed for l2-mininum norm solution
 #include "../tools/lapack/lapack.h"
 
+// Classes necessary for reading in input files
 #include "jediparameters.h" //Class to read JEDI parameters
-#include "getatoms.h"
+#include "getatoms.h" // Class to read in atoms and grid
+
+//Classes necessary for initialisation of the Collective variable
+#include "activity.h"
 
 #include "kabsch.h" // kabsch algorithm for grid update
 
@@ -91,6 +95,8 @@ jedi::jedi(const ActionOptions&ao):
   PLUMED_COLVAR_INIT(ao),
   pbc(true)
 {
+  /*READING IN INPUT FILES*/
+
   //READ jedi.parameters here
   string parameters_file;
   parse("PARAMETERS",parameters_file);
@@ -119,9 +125,6 @@ jedi::jedi(const ActionOptions&ao):
   grid.center_atoms(grid.positions,all_atoms.cog0);
   cout << "Center of geometry went from: " << grid.cog0[0] << "," << grid.cog0[1] << "," << grid.cog0[2] << " to " << \
                                               grid.cog[0] << "," << grid.cog[1] << "," << grid.cog[2] << endl;
-  void calculate_neighbours();
-  void rescale_activities();
-
 
   //Read reference ligand file (to be deprecated)
   string pdb_ligand;
@@ -136,9 +139,20 @@ jedi::jedi(const ActionOptions&ao):
    cout << "Center of geometry went from: " << ligand.cog0[0] << "," << ligand.cog0[1] << "," << ligand.cog0[2] << " to " << \
                                               ligand.cog[0] << "," << ligand.cog[1] << "," << ligand.cog[2] << endl;
   }
-
   cout << "*********************************" << endl;
   checkRead();
+   
+  /*INITIALISING COLLECTIVE VARIABLE*/
+  cout << "INITIALISING JEDI COLLECTIVE VARIABLE" << endl;
+  Activity activity;
+  activity.compute_neighbours(grid.positions,params.GP_min,params.GP_max);
+  int max_neighbours=0;
+  for (unsigned i=0; i<grid.positions.size();i++)
+  {
+   if (activity.neighbours[i].size() > max_neighbours) max_neighbours = activity.neighbours[i].size();
+  }
+  cout << "Maximum number of grid point neighbours: " << max_neighbours << endl;
+  exit(0);
 
   addValue(); // to be replaced by AddValueWithDerivatives()
   setNotPeriodic();
