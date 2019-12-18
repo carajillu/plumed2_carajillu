@@ -95,6 +95,10 @@ jedi::jedi(const ActionOptions&ao):
   PLUMED_COLVAR_INIT(ao),
   pbc(true)
 {
+  /* INITIALISING CV AND DERIVATIVES */
+  addValueWithDerivatives(); //Developers' note: this goes before requestAtoms()
+  setNotPeriodic();
+
   /*READING IN INPUT FILES*/
 
   //READ jedi.parameters here
@@ -152,10 +156,6 @@ jedi::jedi(const ActionOptions&ao):
    if (activity.neighbours[i].size() > max_neighbours) max_neighbours = activity.neighbours[i].size();
   }
   cout << "Maximum number of grid point neighbours: " << max_neighbours << endl;
-  exit(0);
-
-  addValue(); // to be replaced by AddValueWithDerivatives()
-  setNotPeriodic();
   
 }
 
@@ -165,7 +165,17 @@ void jedi::calculate() {
 
   double Jedi=12345.0;
   setValue(Jedi);
-  double dJedi=1.0;
+  
+  vector<double> dJedi_dx(all_atoms.atomnumbers.size(),0);
+  vector<double> dJedi_dy(all_atoms.atomnumbers.size(),0);
+  vector<double> dJedi_dz(all_atoms.atomnumbers.size(),0);
+  #pragma omp parallel for
+  for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
+  {
+    cout << dJedi_dx[j]<<" "<<dJedi_dy[j]<<" "<<dJedi_dz[j]<< endl;
+    setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
+  }
+  
 }
 
 }

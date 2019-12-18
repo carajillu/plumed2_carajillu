@@ -1,0 +1,3 @@
+# in this directory, don't push COLVAR and DERIV
+COLVAR
+DERIV
