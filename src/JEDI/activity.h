@@ -28,8 +28,7 @@ class Activity
    vector<vector<int>> neighbours; //move to private after debug
    
    void compute_neighbours(vector<PLMD::Vector> &positions,double &GPmin, double &GPmax);
-
-   void compute_lig_i(vector<PLMD::Vector> &positions,vector<PLMD::Vector> &lig_positions);
+   
 };
 
 #endif

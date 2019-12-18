@@ -51,8 +51,10 @@
 #include "jediparameters.h" //Class to read JEDI parameters
 #include "getatoms.h" // Class to read in atoms and grid
 
-//Classes necessary for initialisation of the Collective variable
+//Classes necessary for initialisation and calculation of the Collective variable
+#include "distances.h"
 #include "activity.h"
+
 
 #include "kabsch.h" // kabsch algorithm for grid update
 
@@ -162,6 +164,15 @@ jedi::jedi(const ActionOptions&ao):
 
 // calculator
 void jedi::calculate() {
+  
+  /////////////////////////////////////////////////
+  ///               JEDI score                   //
+  /////////////////////////////////////////////////
+  distances distance_matrix;
+  distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions) ;
+  cout << "dimensions of distance matrix: " << distance_matrix.r_matrix.size()<< " x "<< distance_matrix.r_matrix[0].size() << endl;
+  cout << "size of distance matrix: " << sizeof(distance_matrix.r_matrix) << endl;
+
 
   double Jedi=12345.0;
   setValue(Jedi);
@@ -172,7 +183,6 @@ void jedi::calculate() {
   #pragma omp parallel for
   for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
   {
-    cout << dJedi_dx[j]<<" "<<dJedi_dy[j]<<" "<<dJedi_dz[j]<< endl;
     setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
   }
   
