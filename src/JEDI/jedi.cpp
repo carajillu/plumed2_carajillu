@@ -169,9 +169,16 @@ void jedi::calculate() {
   ///               JEDI score                   //
   /////////////////////////////////////////////////
   distances distance_matrix;
-  distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions) ;
-  cout << "dimensions of distance matrix: " << distance_matrix.r_matrix.size()<< " x "<< distance_matrix.r_matrix[0].size() << endl;
-  cout << "size of distance matrix: " << sizeof(distance_matrix.r_matrix) << endl;
+  distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions);
+  int j=12;
+  int i=69;
+
+  cout << "coordinates of atom: " << j << ": " << all_atoms.positions[j][0] << " " << all_atoms.positions[j][1] << " " << all_atoms.positions[j][2] << " " << endl;
+  cout << "coordinates of gridpoint: " << i << ": " << grid.positions[i][0] << " " << grid.positions[i][1] << " " << grid.positions[i][2] << " " << endl;
+  cout << "Distance atom 0 - Grid point 1: " << distance_matrix.r_matrix[j][i]<<endl;
+  cout << "Distance atom 0 - Grid point 1 (dx): " << distance_matrix.dr_matrix_dx[j][i]<<endl;
+  cout << "Distance atom 0 - Grid point 1 (dy): " << distance_matrix.dr_matrix_dy[j][i]<<endl;
+  cout << "Distance atom 0 - Grid point 1 (dz): " << distance_matrix.dr_matrix_dz[j][i]<<endl;
 
 
   double Jedi=12345.0;

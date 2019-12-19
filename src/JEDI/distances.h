@@ -11,6 +11,9 @@ class distances
  public:
    distances();
    vector<vector<double>> r_matrix;
+   vector<vector<double>> dr_matrix_dx;
+   vector<vector<double>> dr_matrix_dy;
+   vector<vector<double>> dr_matrix_dz;
    void compute_distance_matrix(vector<PLMD::Vector> &protein, vector<PLMD::Vector> &grid);
 };
 #endif
