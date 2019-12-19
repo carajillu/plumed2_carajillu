@@ -21,12 +21,18 @@ void distances::compute_distance_matrix(vector<PLMD::Vector> &protein, vector<PL
 {
   vector<double> r_ji_vec(grid.size(),0); //inside vector
   
+  //ugly way of initialising the vectors
   for (unsigned j=0; j<protein.size();j++)
   {
-      r_matrix.push_back(r_ji_vec);
-      dr_matrix_dx.push_back(r_ji_vec);
-      dr_matrix_dy.push_back(r_ji_vec);
-      dr_matrix_dz.push_back(r_ji_vec);
+   r_matrix.push_back(r_ji_vec);
+   dr_matrix_dx.push_back(r_ji_vec);
+   dr_matrix_dy.push_back(r_ji_vec);
+   dr_matrix_dz.push_back(r_ji_vec);
+  }
+
+  #pragma omp parallel for
+  for (unsigned j=0; j<protein.size();j++)
+  {
       for (unsigned i=0; i<grid.size(); i++)
       {
           r_matrix[j][i]=sqrt(pow((protein[j][0]-grid[i][0]),2)+pow((protein[j][1]-grid[i][1]),2)+pow((protein[j][2]-grid[i][2]),2));
