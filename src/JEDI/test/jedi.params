@@ -4,6 +4,7 @@
 alpha               =   5.31  ; PLS slope active volume
 beta                =  24.29  ; PLS slope hydrophobicity
 gamma               = -13.39  ; PLS constant 
+theta               =   5.0   ; theta parameter for the minimum distance approximation
 CC_mind             =   0.20  ; distance (nm) below which a grid point is fully in close contact with the protein
 deltaCC             =   0.05  ; interval (nm) over which a grid point is in partial contact with the protein
 Emin                =  10.00  ; exposure value from which s_on_exposure starts to be >0 

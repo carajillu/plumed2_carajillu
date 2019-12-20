@@ -53,6 +53,7 @@
 
 //Classes necessary for initialisation and calculation of the Collective variable
 #include "distances.h"
+#include "kernel.h"
 #include "activity.h"
 
 
@@ -75,6 +76,7 @@ private:
   getatoms all_atoms;
   getatoms grid;
   getatoms ligand;
+  bool print_benchmark;
 public:
   explicit jedi(const ActionOptions&);
 // active methods:
@@ -95,7 +97,8 @@ void jedi::registerKeywords(Keywords& keys)
 
 jedi::jedi(const ActionOptions&ao):
   PLUMED_COLVAR_INIT(ao),
-  pbc(true)
+  pbc(true),
+  print_benchmark(false)
 {
   /* INITIALISING CV AND DERIVATIVES */
   addValueWithDerivatives(); //Developers' note: this goes before requestAtoms()
@@ -170,16 +173,28 @@ void jedi::calculate() {
   /////////////////////////////////////////////////
   distances distance_matrix;
   distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions);
-  int j=12;
-  int i=69;
 
-  cout << "coordinates of atom: " << j << ": " << all_atoms.positions[j][0] << " " << all_atoms.positions[j][1] << " " << all_atoms.positions[j][2] << " " << endl;
-  cout << "coordinates of gridpoint: " << i << ": " << grid.positions[i][0] << " " << grid.positions[i][1] << " " << grid.positions[i][2] << " " << endl;
-  cout << "Distance atom 0 - Grid point 1: " << distance_matrix.r_matrix[j][i]<<endl;
-  cout << "Distance atom 0 - Grid point 1 (dx): " << distance_matrix.dr_matrix_dx[j][i]<<endl;
-  cout << "Distance atom 0 - Grid point 1 (dy): " << distance_matrix.dr_matrix_dy[j][i]<<endl;
-  cout << "Distance atom 0 - Grid point 1 (dz): " << distance_matrix.dr_matrix_dz[j][i]<<endl;
+  mindist min_dist;
+  min_dist.compute_mindist(distance_matrix.r_matrix,
+                          distance_matrix.dr_matrix_dx,
+                          distance_matrix.dr_matrix_dy,
+                          distance_matrix.dr_matrix_dz,
+                          params.theta);
+  
+  cout << "Test run for mindist" << endl;
+  for (unsigned j=0; j<all_atoms.positions.size();j++)
+  {
+    cout << "Distance and x derivative point 0 - atom " << j << ": " << distance_matrix.r_matrix[j][0] << " " << distance_matrix.dr_matrix_dx[j][0] << 
+                                                                                                          " " << distance_matrix.dr_matrix_dy[j][0] <<
+                                                                                                          " " << distance_matrix.dr_matrix_dz[j][0] << endl;
+  }
 
+  cout << "mindist_0: " << min_dist.min_dist[0] << endl;
+
+  for (unsigned j=0; j<all_atoms.positions.size();j++)
+  {
+    cout << "Derivatives mindist point 0 - atom " << j << ": "<<min_dist.d_mindist_dx[j][0] << " " << min_dist.d_mindist_dy[j][0] << " " << min_dist.d_mindist_dz[j][0] << endl;
+  }
 
   double Jedi=12345.0;
   setValue(Jedi);

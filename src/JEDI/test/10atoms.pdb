@@ -1,0 +1,17 @@
+ITLE     S  C  A  M  O  R  G
+REMARK    THIS IS A SIMULATION BOX
+CRYST1   43.077   57.901   37.302  90.00  90.00  90.00 P 1           1
+MODEL        1
+ATOM      1  N   LEU C  63     -60.576  28.619   6.889  1.00  0.00           N
+ATOM      2  H1  LEU C  63     -60.740  27.796   7.432  1.00  0.00
+ATOM      3  H2  LEU C  63     -59.679  28.996   7.119  1.00  0.00
+ATOM      4  H3  LEU C  63     -61.284  29.297   7.089  1.00  0.00
+ATOM      5  CA  LEU C  63     -60.614  28.269   5.419  1.00  0.00           C
+ATOM      6  HA  LEU C  63     -61.548  27.938   5.285  1.00  0.00
+ATOM      7  CB  LEU C  63     -60.370  29.482   4.505  1.00  0.00           C
+ATOM      8  HB1 LEU C  63     -59.420  29.775   4.616  1.00  0.00
+ATOM      9  HB2 LEU C  63     -60.982  30.220   4.790  1.00  0.00
+ATOM     10  CG  LEU C  63     -60.618  29.192   3.014  1.00  0.00           C
+TER
+ENDMDL
+
