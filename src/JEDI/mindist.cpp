@@ -1,4 +1,4 @@
-#include "kernel.h"
+#include "distances.h"
 
 mindist::mindist()
 {
