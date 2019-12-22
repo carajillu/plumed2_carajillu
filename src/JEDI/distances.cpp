@@ -1,10 +1,5 @@
 #include "distances.h"
 
-distances::distances()
-{
-
-}
-
 /*
 Once the grid is in place, the first step is to calculate the matrices that contain the euclidean distances
 between atoms j and grid points i and their derivatives with respect to the coordinates x y and z of each atom.

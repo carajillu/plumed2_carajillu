@@ -1,9 +1,5 @@
 #include "distances.h"
 
-mindist::mindist()
-{
-
-}
 /*
 This function returns the following vectors:
 1) vector<double> mindist(grid_size): contains the mindist according to Eq.5 JCTC 2015 of every grid point

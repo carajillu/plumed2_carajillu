@@ -180,21 +180,6 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dy,
                           distance_matrix.dr_matrix_dz,
                           params.theta);
-  
-  cout << "Test run for mindist" << endl;
-  for (unsigned j=0; j<all_atoms.positions.size();j++)
-  {
-    cout << "Distance and x derivative point 0 - atom " << j << ": " << distance_matrix.r_matrix[j][0] << " " << distance_matrix.dr_matrix_dx[j][0] << 
-                                                                                                          " " << distance_matrix.dr_matrix_dy[j][0] <<
-                                                                                                          " " << distance_matrix.dr_matrix_dz[j][0] << endl;
-  }
-
-  cout << "mindist_0: " << min_dist.min_dist[0] << endl;
-
-  for (unsigned j=0; j<all_atoms.positions.size();j++)
-  {
-    cout << "Derivatives mindist point 0 - atom " << j << ": "<<min_dist.d_mindist_dx[j][0] << " " << min_dist.d_mindist_dy[j][0] << " " << min_dist.d_mindist_dz[j][0] << endl;
-  }
 
   double Jedi=12345.0;
   setValue(Jedi);
