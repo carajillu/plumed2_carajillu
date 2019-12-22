@@ -181,6 +181,34 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dz,
                           params.theta);
 
+
+  cout << "Mindist grid point 0: " << min_dist.min_dist[0] << endl;
+  
+  for (unsigned j=0; j<all_atoms.positions.size();j++)
+  {
+   cout << "Derivatives with respect to atom " << j << ": " << min_dist.d_mindist_dx[0][j]<< " " << min_dist.d_mindist_dy[0][j]<< " " << min_dist.d_mindist_dz[0][j] << endl;
+  }
+
+
+
+  cout << "S_on test run " << endl;
+  S_on mindist0_Son(min_dist.min_dist[0],params.CC_mind, params.deltaCC,min_dist.d_mindist_dx[0],min_dist.d_mindist_dy[0],min_dist.d_mindist_dz[0]);
+  mindist0_Son.compute_S_on();
+  cout << "S_on (mindist0) = " << mindist0_Son.S_on_value << endl;
+  for (unsigned j=0; j<all_atoms.positions.size();j++)
+  {
+   cout << "Derivatives with respect to atom " << j << ": " << mindist0_Son.d_Son_dx[j]<< " " << mindist0_Son.d_Son_dy[j]<< " " << mindist0_Son.d_Son_dz[j] << endl;
+  }
+
+  cout << "S_off test run " << endl;
+  S_off mindist0_Soff(min_dist.min_dist[0],params.CC2_min, params.deltaCC2,min_dist.d_mindist_dx[0],min_dist.d_mindist_dy[0],min_dist.d_mindist_dz[0]);
+  mindist0_Soff.compute_S_off();
+  cout << "S_off (mindist0) = " << mindist0_Soff.S_off_value << endl;
+  for (unsigned j=0; j<all_atoms.positions.size();j++)
+  {
+   cout << "Derivatives with respect to atom " << j << ": " << mindist0_Soff.d_Soff_dx[j] << " " << mindist0_Soff.d_Soff_dy[j] << " " << mindist0_Soff.d_Soff_dz[j] << endl;
+  }
+
   double Jedi=12345.0;
   setValue(Jedi);
   
