@@ -23,4 +23,3 @@ makefile.dep
 /autom4*
 /stamp-h
 .vscode
-src/JEDI/test/jedi.params

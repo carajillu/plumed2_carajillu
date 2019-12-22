@@ -2,3 +2,10 @@
 COLVAR
 DERIV
 bck*
+system_allh.pdb
+point.pdb
+plumed.dat
+ligand.pdb
+grid.pdb
+10atoms.pdb
+jedi.params
