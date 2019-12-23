@@ -1,3 +1,4 @@
+#include <iostream>
 #include "distances.h"
 
 /*
@@ -57,5 +58,19 @@ void mindist::compute_mindist(vector<vector<double>> &r_matrix,
      d_mindist_dz[i][j]=(pow(min_dist[i],2)*exp_r[i][j])/(sum_exp_r*pow(r_matrix[i][j],2))*dr_matrix_dz[i][j];
     }
   }
+
+//Uncomment the following lines for testing
+/*
+for (unsigned i=0; i< min_dist.size(); i++)
+{
+  cout << "Mindist grid point " <<  i << ": " << min_dist[i] << endl; 
+  for (unsigned j=0; j<d_mindist_dx.size();j++)
+  {
+   cout << "Derivatives with respect to atom " << j << ": " << d_mindist_dx[i][j]<< " " 
+                                                            << d_mindist_dy[i][j]<< " " 
+                                                            << d_mindist_dz[i][j] << endl;
+  }
+}
+*/
   
 }

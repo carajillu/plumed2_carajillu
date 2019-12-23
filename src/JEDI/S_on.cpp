@@ -1,3 +1,4 @@
+#include <iostream>
 #include "kernel.h"
 
 /*
@@ -36,6 +37,16 @@ void S_on::compute_m(double &v, double &v0, double &delta_v, vector<double> &dv_
         dm_dy[j]=1/delta_v*dv_dy[j];
         dm_dz[j]=1/delta_v*dv_dz[j];
     }
+    // Uncomment the following lines for testing
+    /*
+    cout << "m_value = " << m_value << endl;
+    for (unsigned j=0; j<dm_dx.size();j++)
+    {
+     cout << "Derivatives with respect to atom " << j << ": " << dm_dx[j] << " " 
+                                                              << dm_dy[j] << " " 
+                                                              << dm_dz[j] << endl;
+    }
+    */
 }
 
 /*
@@ -48,7 +59,6 @@ void S_on::compute_S_on()
   if (m_value<=0)
   {
     S_on_value = k;
-    return;
   }
   else if (0<m_value and m_value<1) 
   {
@@ -62,11 +72,21 @@ void S_on::compute_S_on()
         d_Son_dy[j]=d_Son_dm*dm_dy[j];
         d_Son_dz[j]=d_Son_dm*dm_dz[j];
     }
-    return;
   }
   else 
   {
     S_on_value=0;
-    return;
   }
+
+
+  // Uncomment the following lines for testing
+  /*
+  cout << "S_on = " << S_on_value << endl;
+  for (unsigned j=0; j<d_Son_dx.size();j++)
+  {
+   cout << "Derivatives with respect to atom " << j << ": " << d_Son_dx[j] << " " 
+                                                            << d_Son_dy[j] << " " 
+                                                            << d_Son_dz[j] << endl;
+  }
+  */
 }

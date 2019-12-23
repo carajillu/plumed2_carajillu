@@ -1,3 +1,4 @@
+#include <iostream>
 #include "kernel.h"
 
 /*
@@ -34,6 +35,17 @@ void S_off::compute_m(double &v, double &v0, double &delta_v, vector<double> &dv
         dm_dy[j]=1/delta_v*dv_dy[j];
         dm_dz[j]=1/delta_v*dv_dz[j];
     }
+
+    // Uncomment the following lines for testing
+    /*
+    cout << "m_value = " << m_value << endl;
+    for (unsigned j=0; j<dm_dx.size();j++)
+    {
+     cout << "Derivatives with respect to atom " << j << ": " << dm_dx[j] << " " 
+                                                              << dm_dy[j] << " " 
+                                                              << dm_dz[j] << endl;
+    }
+    */
 }
 
 /*
@@ -46,7 +58,6 @@ void S_off::compute_S_off()
   if (m_value<=0)
   {
     S_off_value = k;
-    return;
   }
   else if (0<m_value and m_value<1) 
   {
@@ -65,6 +76,16 @@ void S_off::compute_S_off()
   else 
   {
     S_off_value=0;
-    return;
   }
+
+  // Uncomment the following lines for testing
+  /*
+  cout << "S_on = " << S_off_value << endl;
+  for (unsigned j=0; j<d_Soff_dx.size();j++)
+  {
+   cout << "Derivatives with respect to atom " << j << ": " << d_Soff_dx[j] << " " 
+                                                            << d_Soff_dy[j] << " " 
+                                                            << d_Soff_dz[j] << endl;
+  }
+  */
 }
