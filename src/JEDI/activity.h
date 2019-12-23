@@ -9,25 +9,45 @@ using namespace std;
 class Activity
 {
  private:
-
-   vector<double> ligand_correction;
-   vector<double> d_ligand_correction;
+   vector<vector<int>> neighbours; //move to private after debug
+   void compute_neighbours(vector<PLMD::Vector> &positions,double &GPmin, double &GPmax);
 
    vector<double> close_contact;
-   vector<double> d_close_contact;
+   vector<vector<double>> d_closecontact_dx;
+   vector<vector<double>> d_closecontact_dy;
+   vector<vector<double>> d_closecontact_dz;
+   void compute_close_contact(vector<double> &mindist, 
+                              vector<vector<double>> &d_mindist_dx,
+                              vector<vector<double>> &d_mindist_dy,
+                              vector<vector<double>> &d_mindist_dz,
+                              double &CC_min, double &deltaCC);
 
-   
    vector<double> depth;
-   vector<double> d_depth;
-
+   vector<vector<double>> d_depth_dx;
+   vector<vector<double>> d_depth_dy;
+   vector<vector<double>> d_depth_dz;
+   void compute_depth();
 
  public:
    Activity();
+   void Activity_init(vector<PLMD::Vector> &positions,
+            double &CC_min, double deltaCC,
+            double &GPmin, double &GPmax,
+            double &CC2_min, double &deltaCC2);
    vector<double> activity;
-   vector<double> d_activity; //d_lig_i*(close_contact*depth)+((d_close_contact*depth)+(close_contact*d_depth))*lig_i
-   vector<vector<int>> neighbours; //move to private after debug
+   vector<vector<double>> d_activity_dx;
+   vector<vector<double>> d_activity_dy;
+   vector<vector<double>> d_activity_dz;
+   void compute_activities(vector<double> &mindist, 
+                           vector<vector<double>> &d_mindist_dx,
+                           vector<vector<double>> &d_mindist_dy,
+                           vector<vector<double>> &d_mindist_dz,
+                           double &CC_min, double &deltaCC,
+                           double &GPmin, double &GPmax,
+                           double &CC2_min, double &deltaCC2);
    
-   void compute_neighbours(vector<PLMD::Vector> &positions,double &GPmin, double &GPmax);
+   
+   
    
 };
 

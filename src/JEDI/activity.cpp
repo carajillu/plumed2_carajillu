@@ -1,10 +1,30 @@
 #include "activity.h"
+#include "kernel.h"
 #include <iostream>
 
 using namespace std;
 
+/*
+This function is blank so that the activity object can be created and used
+in different classes. 
+*/
 Activity::Activity()
 {
+ 
+}
+
+/*
+ This function initialises the activity object and takes in the coordinates of
+ the grid, the parameters CCmin and deltaCC (to compute close contact), 
+ GPmin and GPmax (to compute neighbours) and CC2min and deltaCC2 (to compute depth)
+*/
+void Activity::Activity_init(vector<PLMD::Vector> &positions,
+                   double &CC_min, double deltaCC,
+                   double &GPmin, double &GPmax,
+                   double &CC2_min, double &deltaCC2)
+{
+  cout << "Computing grid neighbours" << endl;
+  compute_neighbours(positions, GPmin, GPmax);
 }
 
 /*
@@ -23,19 +43,34 @@ void Activity::compute_neighbours(vector<PLMD::Vector> &positions,double &GPmin,
  
  for (unsigned i=0; i<positions.size();i++)
    {
-     //cout << "Grid point " << i << " looking at :" << endl;
      for (unsigned k=i+1; k<positions.size();k++)
-     {
-      //cout << " " << k << " distance: ";
+     {  
       double r=delta(positions[k],positions[i]).modulo();
-      //cout  << r << ", GPmin: " << GPmin << ", GPmax: " << GPmax;
       if ( (r-GPmin)>0.000001 and (r-GPmax)<0.000001)
       {
-        //cout << "--adding point ";
         neighbours[i].push_back(k);
         neighbours[k].push_back(i);
       }
-      //cout << endl;
      }
    }
+   int max_neighbours=0;
+  for (unsigned i=0; i<positions.size();i++)
+  {
+   if (neighbours[i].size() > max_neighbours) max_neighbours = neighbours[i].size();
+  }
+  cout << "Maximum number of grid point neighbours: " << max_neighbours << endl;
+}
+
+void Activity::compute_activities(vector<double> &mindist, 
+                                 vector<vector<double>> &d_mindist_dx,
+                                 vector<vector<double>> &d_mindist_dy,
+                                 vector<vector<double>> &d_mindist_dz,
+                                double &CC_min, double &deltaCC,
+                                double &GPmin, double &GPmax,
+                                double &CC2_min, double &deltaCC2)
+{
+  cout << "computing close contact"<<endl;
+  compute_close_contact(mindist,d_mindist_dx,d_mindist_dy,d_mindist_dz,CC_min,deltaCC);
+  exit(0);
+          
 }

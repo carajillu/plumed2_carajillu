@@ -76,6 +76,7 @@ private:
   getatoms all_atoms;
   getatoms grid;
   getatoms ligand;
+  Activity activity;
   bool print_benchmark;
 public:
   explicit jedi(const ActionOptions&);
@@ -153,14 +154,11 @@ jedi::jedi(const ActionOptions&ao):
    
   /*INITIALISING COLLECTIVE VARIABLE*/
   cout << "INITIALISING JEDI COLLECTIVE VARIABLE" << endl;
-  Activity activity;
-  activity.compute_neighbours(grid.positions,params.GP_min,params.GP_max);
-  int max_neighbours=0;
-  for (unsigned i=0; i<grid.positions.size();i++)
-  {
-   if (activity.neighbours[i].size() > max_neighbours) max_neighbours = activity.neighbours[i].size();
-  }
-  cout << "Maximum number of grid point neighbours: " << max_neighbours << endl;
+  
+  activity.Activity_init(grid.positions, 
+                    params.CC_mind, params.deltaCC,
+                    params.GP_min,params.GP_max,
+                    params.CC2_min, params.deltaCC2);
   
 }
 
@@ -180,34 +178,10 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dy,
                           distance_matrix.dr_matrix_dz,
                           params.theta);
-
-
-  cout << "Mindist grid point 0: " << min_dist.min_dist[0] << endl;
   
-  for (unsigned j=0; j<all_atoms.positions.size();j++)
-  {
-   cout << "Derivatives with respect to atom " << j << ": " << min_dist.d_mindist_dx[0][j]<< " " << min_dist.d_mindist_dy[0][j]<< " " << min_dist.d_mindist_dz[0][j] << endl;
-  }
-
-
-
-  cout << "S_on test run " << endl;
-  S_on mindist0_Son(min_dist.min_dist[0],params.CC_mind, params.deltaCC,min_dist.d_mindist_dx[0],min_dist.d_mindist_dy[0],min_dist.d_mindist_dz[0]);
-  mindist0_Son.compute_S_on();
-  cout << "S_on (mindist0) = " << mindist0_Son.S_on_value << endl;
-  for (unsigned j=0; j<all_atoms.positions.size();j++)
-  {
-   cout << "Derivatives with respect to atom " << j << ": " << mindist0_Son.d_Son_dx[j]<< " " << mindist0_Son.d_Son_dy[j]<< " " << mindist0_Son.d_Son_dz[j] << endl;
-  }
-
-  cout << "S_off test run " << endl;
-  S_off mindist0_Soff(min_dist.min_dist[0],params.CC2_min, params.deltaCC2,min_dist.d_mindist_dx[0],min_dist.d_mindist_dy[0],min_dist.d_mindist_dz[0]);
-  mindist0_Soff.compute_S_off();
-  cout << "S_off (mindist0) = " << mindist0_Soff.S_off_value << endl;
-  for (unsigned j=0; j<all_atoms.positions.size();j++)
-  {
-   cout << "Derivatives with respect to atom " << j << ": " << mindist0_Soff.d_Soff_dx[j] << " " << mindist0_Soff.d_Soff_dy[j] << " " << mindist0_Soff.d_Soff_dz[j] << endl;
-  }
+  activity.compute_activities(min_dist.min_dist, min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
+                              params.CC_mind,params.deltaCC,params.GP_min,params.GP_max,params.CC2_min,params.deltaCC2);
+    
 
   double Jedi=12345.0;
   setValue(Jedi);
