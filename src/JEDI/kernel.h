@@ -24,6 +24,22 @@ class S_on
     void compute_S_on();
 };
 
+class S_on_grid
+{
+ public:
+  S_on_grid();
+  vector<double> S_on_grid_vector;
+  vector<vector<double>> d_Son_grid_dx;
+  vector<vector<double>> d_Son_grid_dy;
+  vector<vector<double>> d_Son_grid_dz;
+  void compute_S_on_grid(vector<double> &mindist, 
+                          vector<vector<double>> &d_mindist_dx,
+                          vector<vector<double>> &d_mindist_dy,
+                          vector<vector<double>> &d_mindist_dz,
+                          double &v0, double &delta_v);
+
+};
+
 class S_off
 {
  private:
@@ -40,6 +56,22 @@ class S_off
     vector<double> d_Soff_dy;
     vector<double> d_Soff_dz;
     void compute_S_off();
+};
+
+class S_off_grid
+{
+ public:
+  S_off_grid();
+  vector<double> S_off_grid_vector;
+  vector<vector<double>> d_Soff_grid_dx;
+  vector<vector<double>> d_Soff_grid_dy;
+  vector<vector<double>> d_Soff_grid_dz;
+  void compute_S_off_grid(vector<double> &mindist, 
+                         vector<vector<double>> &d_mindist_dx,
+                         vector<vector<double>> &d_mindist_dy,
+                         vector<vector<double>> &d_mindist_dz,
+                         double &v0, double &delta_v);
+
 };
 
 #endif
