@@ -12,15 +12,16 @@ class Activity
    vector<vector<int>> neighbours; //move to private after debug
    void compute_neighbours(vector<PLMD::Vector> &positions,double &GPmin, double &GPmax);
 
-   vector<double> close_contact;
-   vector<vector<double>> d_closecontact_dx;
-   vector<vector<double>> d_closecontact_dy;
-   vector<vector<double>> d_closecontact_dz;
-   void compute_close_contact(vector<double> &mindist, 
-                              vector<vector<double>> &d_mindist_dx,
-                              vector<vector<double>> &d_mindist_dy,
-                              vector<vector<double>> &d_mindist_dz,
-                              double &CC_min, double &deltaCC);
+   vector<double> depth_sum;
+   vector<vector<double>> d_depthsum_dx;
+   vector<vector<double>> d_depthsum_dy;
+   vector<vector<double>> d_depthsum_dz;
+   void compute_depth_sum(vector<double> &mindist, 
+                          vector<vector<int>> &neighbours,
+                          vector<vector<double>> &d_mindist_dx,
+                          vector<vector<double>> &d_mindist_dy,
+                          vector<vector<double>> &d_mindist_dz,
+                          double CC2_min, double deltaCC2);
 
    vector<double> depth;
    vector<vector<double>> d_depth_dx;

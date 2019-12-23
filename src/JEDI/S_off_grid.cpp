@@ -45,7 +45,7 @@ void S_off_grid::compute_S_off_grid(vector<double> &mindist,
  }
 
  // Uncomment the following lines for testing
- 
+ /*
  for (unsigned i=0; i<S_off_grid_vector.size();i++)
  {
      cout << "Mindist point " << i << ": " << mindist[i] << endl;
@@ -57,5 +57,5 @@ void S_off_grid::compute_S_off_grid(vector<double> &mindist,
                                                                     d_Soff_grid_dz[i][j] << endl;
      }
  }
- 
+ */
 }

@@ -69,8 +69,11 @@ void Activity::compute_activities(vector<double> &mindist,
                                 double &GPmin, double &GPmax,
                                 double &CC2_min, double &deltaCC2)
 {
-  cout << "computing close contact"<<endl;
-  compute_close_contact(mindist,d_mindist_dx,d_mindist_dy,d_mindist_dz,CC_min,deltaCC);
-  exit(0);
-          
+  
+  S_on_grid close_contact_son;
+  close_contact_son.compute_S_on_grid(mindist,d_mindist_dx,d_mindist_dy,d_mindist_dz,CC_min,deltaCC);
+
+  S_off_grid farawayness;
+  farawayness.compute_S_off_grid(mindist,d_mindist_dx,d_mindist_dy,d_mindist_dz,CC2_min,deltaCC2);
+
 }
