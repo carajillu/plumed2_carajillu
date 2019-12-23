@@ -58,7 +58,7 @@ void S_on::compute_S_on()
 {
   if (m_value<=0)
   {
-    S_on_value = k;
+    S_on_value = 0;
   }
   else if (0<m_value and m_value<1) 
   {
@@ -75,7 +75,7 @@ void S_on::compute_S_on()
   }
   else 
   {
-    S_on_value=0;
+    S_on_value = k;
   }
 
 

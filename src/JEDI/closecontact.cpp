@@ -28,20 +28,23 @@ void Activity::compute_close_contact(vector<double> &mindist,
    S_on close_contact_i(mindist[i],CC_min,deltaCC,d_mindist_dx[i],d_mindist_dy[i],d_mindist_dz[i]);
    close_contact_i.compute_S_on();
    close_contact[i]=close_contact_i.S_on_value;
-   cout << close_contact[i];
    d_closecontact_dx[i]=close_contact_i.d_Son_dx;
    d_closecontact_dy[i]=close_contact_i.d_Son_dy;
    d_closecontact_dz[i]=close_contact_i.d_Son_dz;
  }
 
+ // Uncomment the following lines for testing
+ /*
  for (unsigned i=0; i<close_contact.size();i++)
  {
-     cout << "close_contact point i: " << close_contact[i] << endl;
-     for (unsigned j=0; j<d_closecontact_dx.size();j++)
+     cout << "Mindist point " << i << ": " << mindist[i] << endl;
+     cout << "close_contact point "<< i << ": " << close_contact[i] << endl;
+     for (unsigned j=0; j<d_closecontact_dx[i].size();j++)
      {
-        cout << "derivatives with respect to atom " << j << ": " << d_closecontact_dx[i][j] << " " <<
+        cout << "Iteration " << j << ": "<< "derivatives with respect to atom " << j << ": " << d_closecontact_dx[i][j] << " " <<
                                                                     d_closecontact_dy[i][j] << " " <<
-                                                                    d_closecontact_dx[i][j] << endl;
+                                                                    d_closecontact_dz[i][j] << endl;
      }
  }
+ */
 }
