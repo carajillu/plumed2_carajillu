@@ -13,17 +13,13 @@ void S_on_grid::compute_S_on_grid(vector<double> &mindist,
                            double &v0, double &delta_v)
 {
  //Ugly way to fill vectors with zeros
+ vector<double> d_Son_grid_i(0,d_mindist_dx.size());
  for (unsigned i=0; i< mindist.size(); i++)
  {
     S_on_grid_vector.push_back(0);
- }
-
- vector<double> d_Son_grid_i(0,d_mindist_dx.size());
- for (unsigned i=0; i<mindist.size();i++)
- {
-  d_Son_grid_dx.push_back(d_Son_grid_i);
-  d_Son_grid_dy.push_back(d_Son_grid_i);
-  d_Son_grid_dz.push_back(d_Son_grid_i);
+    d_Son_grid_dx.push_back(d_Son_grid_i);
+    d_Son_grid_dy.push_back(d_Son_grid_i);
+    d_Son_grid_dz.push_back(d_Son_grid_i);
  }
 
  #pragma omp parallel for

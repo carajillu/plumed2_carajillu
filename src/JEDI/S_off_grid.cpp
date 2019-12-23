@@ -20,17 +20,13 @@ void S_off_grid::compute_S_off_grid(vector<double> &mindist,
  d_Soff_grid_dz.empty();
 
  //Ugly way to fill vectors with zeros
+ vector<double> d_Soff_grid_i(0,d_mindist_dx.size());
  for (unsigned i=0; i< mindist.size(); i++)
  {
     S_off_grid_vector.push_back(0);
- }
-
- vector<double> d_Soff_grid_i(0,d_mindist_dx.size());
- for (unsigned i=0; i<mindist.size();i++)
- {
-  d_Soff_grid_dx.push_back(d_Soff_grid_i);
-  d_Soff_grid_dy.push_back(d_Soff_grid_i);
-  d_Soff_grid_dz.push_back(d_Soff_grid_i);
+    d_Soff_grid_dx.push_back(d_Soff_grid_i);
+    d_Soff_grid_dy.push_back(d_Soff_grid_i);
+    d_Soff_grid_dz.push_back(d_Soff_grid_i);
  }
 
  #pragma omp parallel for
