@@ -55,6 +55,7 @@
 #include "distances.h"
 #include "kernel.h"
 #include "activity.h"
+#include "volume.h"
 
 
 #include "kabsch.h" // kabsch algorithm for grid update
@@ -182,8 +183,11 @@ void jedi::calculate() {
   activity.compute_activities(min_dist.min_dist, min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
                               params.CC_mind,params.deltaCC,params.GP_min,params.GP_max,params.CC2_min,params.deltaCC2,params.Emin,params.deltaE);
     
+  Volume volume;
+  volume.compute_volume(activity);
 
-  double Jedi=12345.0;
+  double Jedi=12345;
+
   setValue(Jedi);
   
   vector<double> dJedi_dx(all_atoms.atomnumbers.size(),0);
