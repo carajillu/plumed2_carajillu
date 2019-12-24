@@ -24,7 +24,7 @@ void Activity::Activity_init(vector<PLMD::Vector> &positions,
                    double &CC2_min, double &deltaCC2)
 {
   cout << "Computing grid neighbours" << endl;
-  compute_neighbours(positions, GPmin, GPmax); 
+  compute_neighbours(positions, GPmin, GPmax);
 }
 
 /*
@@ -67,14 +67,62 @@ void Activity::compute_activities(vector<double> &mindist,
                                  vector<vector<double>> &d_mindist_dz,
                                 double &CC_min, double &deltaCC,
                                 double &GPmin, double &GPmax,
-                                double &CC2_min, double &deltaCC2)
+                                double &CC2_min, double &deltaCC2,
+                                double &Emin, double &deltaE)
 {
   
-  S_on_grid close_contact_son;
-  close_contact_son.compute_S_on_grid(mindist,d_mindist_dx,d_mindist_dy,d_mindist_dz,CC_min,deltaCC);
+  //compute close contact
+  S_on_grid close_contact;
+  close_contact.compute_S_on_grid(mindist,d_mindist_dx,d_mindist_dy,d_mindist_dz,CC_min,deltaCC);
   
+  
+  //compute depth
   S_off_grid farawayness;
   farawayness.compute_S_off_grid(mindist,d_mindist_dx,d_mindist_dy,d_mindist_dz,CC2_min,deltaCC2);
-
   Activity::compute_farawayness_sum(neighbours,farawayness);
+  
+  S_on_grid depth;
+  depth.compute_S_on_grid(depth_sum,d_depthsum_dx,d_depthsum_dy,d_depthsum_dz,Emin,deltaE);
+  
+  
+  //compute activity and its derivatives
+  
+  //Ugly way to fill vectors with zeros
+  vector<double> d_activity_i(d_mindist_dx[0].size(),0);
+  for (unsigned i=0; i<mindist.size();i++)
+  {
+    activity.push_back(0);
+    d_activity_dx.push_back(d_activity_i);
+    d_activity_dy.push_back(d_activity_i);
+    d_activity_dz.push_back(d_activity_i);
+  }
+
+  #pragma omp parallel for
+  for (unsigned i=0; i<activity.size();i++)
+  {
+   activity[i]=close_contact.S_on_grid_vector[i]*depth.S_on_grid_vector[i];
+   for (unsigned j=0; j<d_activity_dx[i].size(); j++)
+     {
+       d_activity_dx[i][j]=depth.S_on_grid_vector[i]*close_contact.d_Son_grid_dx[i][j]+
+                           close_contact.S_on_grid_vector[i]*depth.d_Son_grid_dx[i][j];
+       d_activity_dy[i][j]=depth.S_on_grid_vector[i]*close_contact.d_Son_grid_dy[i][j]+
+                           close_contact.S_on_grid_vector[i]*depth.d_Son_grid_dy[i][j];
+       d_activity_dz[i][j]=depth.S_on_grid_vector[i]*close_contact.d_Son_grid_dz[i][j]+
+                           close_contact.S_on_grid_vector[i]*depth.d_Son_grid_dz[i][j];
+     }
+  }
+
+  //Uncomment the following lines for testing
+  /*
+  for (unsigned i=0; i<activity.size();i++)
+  {
+    cout << "Activity point " << i << " = " << activity[i] << endl;
+    for (unsigned j=0; j<d_activity_dx[i].size();j++)
+    {
+      cout << "derivative with respect to atom: " << j << ": " << d_activity_dx[i][j] << " "
+                                                               << d_activity_dy[i][j] << " "
+                                                               << d_activity_dz[i][j] << " " << endl;
+    }
+  }
+  */
 }

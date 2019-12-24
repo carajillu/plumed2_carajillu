@@ -18,7 +18,6 @@ void Activity::compute_farawayness_sum(vector<vector<int>> &neighbours, S_off_gr
   {
       for (unsigned k=0; k<neighbours[i].size();k++)
       {
-          cout << "point " << neighbours[i][k] << " is a neighbour of point " << i << endl;
           int neighbour_idx = neighbours[i][k];
           depth_sum[i]+=farawayness.S_off_grid_vector[neighbour_idx];
           for (unsigned j=0; j<d_depthsum_dx[i].size();j++)
@@ -31,6 +30,7 @@ void Activity::compute_farawayness_sum(vector<vector<int>> &neighbours, S_off_gr
   }
 
   //Uncomment the following lines for testing
+  /*
   cout << "Testing neighbours farawayness" << endl;
   for (unsigned i=0; i<neighbours.size();i++)
   {
@@ -42,7 +42,6 @@ void Activity::compute_farawayness_sum(vector<vector<int>> &neighbours, S_off_gr
                                                               << d_depthsum_dy[i][j] << " " 
                                                               << d_depthsum_dz[i][j] << " " << endl;
    }
-   
   }
-
+ */
 }
