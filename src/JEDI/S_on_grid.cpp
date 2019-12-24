@@ -41,11 +41,10 @@ void S_on_grid::compute_S_on_grid(vector<double> &mindist,
      cout << "S_on_grid point "<< i << ": " << S_on_grid_vector[i] << endl;
      for (unsigned j=0; j<d_Son_grid_dx[i].size();j++)
      {
-        cout << "Iteration " << j << ": "<< "derivatives with respect to atom " << j << ": " << d_Son_grid_dx[i][j] << " " <<
+        cout << "derivatives with respect to atom " << j << ": " << d_Son_grid_dx[i][j] << " " <<
                                                                     d_Son_grid_dy[i][j] << " " <<
                                                                     d_Son_grid_dz[i][j] << endl;
      }
  }
  */
- 
 }
