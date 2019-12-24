@@ -1,5 +1,6 @@
 #include<vector>
 #include "tools/PDB.h"
+#include "kernel.h"
 
 using namespace std;
 
@@ -16,12 +17,7 @@ class Activity
    vector<vector<double>> d_depthsum_dx;
    vector<vector<double>> d_depthsum_dy;
    vector<vector<double>> d_depthsum_dz;
-   void compute_depth_sum(vector<double> &mindist, 
-                          vector<vector<int>> &neighbours,
-                          vector<vector<double>> &d_mindist_dx,
-                          vector<vector<double>> &d_mindist_dy,
-                          vector<vector<double>> &d_mindist_dz,
-                          double CC2_min, double deltaCC2);
+   void compute_farawayness_sum(vector<vector<int>> &neighbours,S_off_grid farawayness);
 
    vector<double> depth;
    vector<vector<double>> d_depth_dx;

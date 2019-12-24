@@ -24,7 +24,7 @@ void Activity::Activity_init(vector<PLMD::Vector> &positions,
                    double &CC2_min, double &deltaCC2)
 {
   cout << "Computing grid neighbours" << endl;
-  compute_neighbours(positions, GPmin, GPmax);
+  compute_neighbours(positions, GPmin, GPmax); 
 }
 
 /*
@@ -72,8 +72,9 @@ void Activity::compute_activities(vector<double> &mindist,
   
   S_on_grid close_contact_son;
   close_contact_son.compute_S_on_grid(mindist,d_mindist_dx,d_mindist_dy,d_mindist_dz,CC_min,deltaCC);
-
+  
   S_off_grid farawayness;
   farawayness.compute_S_off_grid(mindist,d_mindist_dx,d_mindist_dy,d_mindist_dz,CC2_min,deltaCC2);
 
+  Activity::compute_farawayness_sum(neighbours,farawayness);
 }
