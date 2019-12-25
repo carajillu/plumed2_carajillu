@@ -1,3 +1,4 @@
+#include <iostream>
 #include "distances.h"
 
 /*
@@ -30,11 +31,26 @@ void distances::compute_distance_matrix(vector<PLMD::Vector> &protein, vector<PL
   {
       for (unsigned j=0; j<protein.size(); j++)
       {
-          r_matrix[i][j]=sqrt(pow((protein[j][0]-grid[i][0]),2)+pow((protein[j][1]-grid[i][1]),2)+pow((protein[j][2]-grid[i][2]),2));
+          r_matrix[i][j]=delta(protein[j],grid[i]).modulo();
           dr_matrix_dx[i][j]=(protein[j][0]-grid[i][0])/r_matrix[i][j];
           dr_matrix_dy[i][j]=(protein[j][1]-grid[i][1])/r_matrix[i][j];
           dr_matrix_dz[i][j]=(protein[j][2]-grid[i][2])/r_matrix[i][j];
       }
   }
+  
+  //Uncomment the following lines for testing
+  /*
+  for (unsigned i=0; i<grid.size();i++)
+  {
+    for (unsigned j=0; j<protein.size(); j++)
+    {
+      cout << " Distance atom " << j << " - gridpoint " << i << " (derivatives) = " << r_matrix[i][j] << "("
+                                                                                    << dr_matrix_dx[i][j] << " "
+                                                                                    << dr_matrix_dy[i][j] << " "
+                                                                                    << dr_matrix_dz[i][j] << " "
+                                                                                    << ")" << endl;
+    }
+  }
+  */
 }
 
