@@ -8,7 +8,7 @@ Volume::Volume()
 
 }
 
-void Volume::compute_volume(Activity &activity)
+void Volume::compute_volume(Activity &activity, double &volume_element)
 {
   //Ugly way to fill vectors with zeros
   for (unsigned j=0; j<activity.d_activity_dx[0].size();j++)
@@ -22,12 +22,12 @@ void Volume::compute_volume(Activity &activity)
   #pragma omp parallel for 
   for (unsigned i=0; i<activity.activity.size();i++)
   {
-      volume+=activity.activity[i];
+      volume+=activity.activity[i]*volume_element;
       for (unsigned j=0; j<activity.d_activity_dx[i].size();j++)
       {
-        d_volume_dx[j]+=activity.d_activity_dx[i][j];
-        d_volume_dy[j]+=activity.d_activity_dy[i][j];
-        d_volume_dz[j]+=activity.d_activity_dz[i][j];
+        d_volume_dx[j]+=activity.d_activity_dx[i][j]*volume_element;
+        d_volume_dy[j]+=activity.d_activity_dy[i][j]*volume_element;
+        d_volume_dz[j]+=activity.d_activity_dz[i][j]*volume_element;
       }
   }
 

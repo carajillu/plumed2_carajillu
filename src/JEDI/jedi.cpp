@@ -184,7 +184,8 @@ void jedi::calculate() {
                               params.CC_mind,params.deltaCC,params.GP_min,params.GP_max,params.CC2_min,params.deltaCC2,params.Emin,params.deltaE);
     
   Volume volume;
-  volume.compute_volume(activity);
+  double volume_element=pow(params.resolution,3);
+  volume.compute_volume(activity,volume_element);
 
   double Jedi=12345;
 

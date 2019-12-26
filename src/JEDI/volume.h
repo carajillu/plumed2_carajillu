@@ -10,5 +10,5 @@ class Volume
   vector<double> d_volume_dx;
   vector<double> d_volume_dy;
   vector<double> d_volume_dz;
-  void compute_volume(Activity &activity);
+  void compute_volume(Activity &activity, double &volume_element);
 };
