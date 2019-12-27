@@ -17,10 +17,10 @@ class Hydrophobicity
    void compute_hydrophobicity_grid(vector<string> &atomnames, distances &r_matrix, double &r_hydro, double &deltar_hydro);
  public:
    Hydrophobicity();
-   double hydrophobicity;
-   vector<double> d_hydrophobicity_dx;
-   vector<double> d_hydrophobicity_dy;
-   vector<double> d_hydrophobicity_dz;
+   double Ha;
+   vector<double> d_Ha_dx;
+   vector<double> d_Ha_dy;
+   vector<double> d_Ha_dz;
    void compute_hydrophobicity(vector<string> &atomnames, distances &r_matrix, Activity &activity, double &r_hydro, double &deltar_hydro);
    
    

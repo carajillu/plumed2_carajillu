@@ -119,6 +119,8 @@ void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, dist
      }
  }
 
+ // Uncomment the following lines for testing
+ 
  for (unsigned i=0; i<size_grid; i++)
  {
    cout << "Hydrophobicity of grid point " << i << "= " << hydrophobicity_grid[i] << endl;
@@ -129,6 +131,7 @@ void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, dist
                                                                    d_hydrogrid_dz[i][j] << " " << endl;
    }
  }
+ 
 
 };
 
@@ -136,5 +139,62 @@ void Hydrophobicity::compute_hydrophobicity(vector<string> &atomnames, distances
 {
  compute_contacts(r_matrix,r_hydro,deltar_hydro);
  compute_hydrophobicity_grid(atomnames, r_matrix, r_hydro, deltar_hydro);
- exit(0);
+ 
+ //Ugly way to fill vectors
+ vector<double> d_hydro(atomnames.size(),0);
+ d_Ha_dx=d_hydro;
+ d_Ha_dy=d_hydro;
+ d_Ha_dz=d_hydro;
+
+ double activity_sum=0;
+ vector<double> d_activity_sum_dx(atomnames.size());
+ vector<double> d_activity_sum_dy(atomnames.size());
+ vector<double> d_activity_sum_dz(atomnames.size());
+
+ double hydro_activity_sum=0;
+ vector<double> d_hydroactivity_sum_dx(atomnames.size());
+ vector<double> d_hydroactivity_sum_dy(atomnames.size());
+ vector<double> d_hydroactivity_sum_dz(atomnames.size());
+
+ #pragma omp parallel for
+ for (unsigned i=0; i<activity.activity.size();i++)
+ {
+   activity_sum+=activity.activity[i];
+   hydro_activity_sum+=hydrophobicity_grid[i]*activity.activity[i];
+   for (unsigned j=0; j<atomnames.size();j++)
+   {
+    d_activity_sum_dx[j]+=activity.d_activity_dx[i][j];
+    d_activity_sum_dy[j]+=activity.d_activity_dy[i][j];
+    d_activity_sum_dz[j]+=activity.d_activity_dz[i][j];
+    
+    d_hydroactivity_sum_dx[j]+=activity.activity[i]*d_hydrogrid_dx[i][j]+hydrophobicity_grid[i]*activity.d_activity_dx[i][j];
+    d_hydroactivity_sum_dy[j]+=activity.activity[i]*d_hydrogrid_dy[i][j]+hydrophobicity_grid[i]*activity.d_activity_dy[i][j];
+    d_hydroactivity_sum_dz[j]+=activity.activity[i]*d_hydrogrid_dz[i][j]+hydrophobicity_grid[i]*activity.d_activity_dz[i][j];
+   }
+ }
+
+ Ha=hydro_activity_sum/activity_sum;
+
+ #pragma omp parallel for
+ for (unsigned j=0; j<atomnames.size();j++)
+ {
+  d_Ha_dx[j]=(activity_sum*d_hydroactivity_sum_dx[j]-hydro_activity_sum*d_activity_sum_dx[j])/pow(activity_sum,2);
+  d_Ha_dy[j]=(activity_sum*d_hydroactivity_sum_dy[j]-hydro_activity_sum*d_activity_sum_dy[j])/pow(activity_sum,2);
+  d_Ha_dz[j]=(activity_sum*d_hydroactivity_sum_dz[j]-hydro_activity_sum*d_activity_sum_dz[j])/pow(activity_sum,2);
+ }
+
+ // Uncomment the following lines for testing
+ for (unsigned i=0; i<activity.activity.size();i++)
+ {
+     cout << "Point " << i << "Activity = " << activity.activity[i] << " h_i = " << hydrophobicity_grid[i] << endl;
+ }
+
+ cout << "Ha = " << Ha << endl;
+
+ for (unsigned j=0; j<atomnames.size();j++)
+ {
+  cout << "Derivatives with respect to atom j " << j << ": " << d_Ha_dx[j] << " "<< d_Ha_dy[j] << " " << d_Ha_dz[j] << " " << endl;
+ }
+
+exit(0);
 }
