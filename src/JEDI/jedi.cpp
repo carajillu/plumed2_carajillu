@@ -56,6 +56,7 @@
 #include "kernel.h"
 #include "activity.h"
 #include "volume.h"
+#include "hydrophobicity.h"
 
 
 #include "kabsch.h" // kabsch algorithm for grid update
@@ -186,6 +187,13 @@ void jedi::calculate() {
   Volume volume;
   double volume_element=pow(params.resolution,3);
   volume.compute_volume(activity,volume_element);
+
+  Hydrophobicity hydrophobicity;
+  hydrophobicity.compute_hydrophobicity_score(all_atoms.atomnames,distance_matrix,activity,params.r_hydro,params.deltar_hydro);
+
+  
+  
+
 
   double Jedi=12345;
 

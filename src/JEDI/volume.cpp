@@ -34,6 +34,7 @@ void Volume::compute_volume(Activity &activity, double &volume_element)
   
 
   //Uncomment the following lines for testing
+  /*
   cout << "Volume: " << volume << endl;
   for (unsigned j=0;j<d_volume_dx.size();j++)
   {
@@ -41,4 +42,5 @@ void Volume::compute_volume(Activity &activity, double &volume_element)
                                                         << " " << d_volume_dy[j] 
                                                         << " " << d_volume_dz[j] << endl;
   }
+  */
 }
