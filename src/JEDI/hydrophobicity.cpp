@@ -41,6 +41,7 @@ void Hydrophobicity::compute_contacts(distances &r_matrix, double &r_hydro, doub
  }
 
  //Uncomment the following lines for testing
+ /*
  for (unsigned i=0;i<size_grid;i++)
  {
   cout << "grid point " << i << endl;
@@ -54,11 +55,86 @@ void Hydrophobicity::compute_contacts(distances &r_matrix, double &r_hydro, doub
                                                                    contacts[i][j].d_Soff_dz[l] << " " << endl;
     }
   }
-  exit(0);
  }
+ */
 };
 
-void Hydrophobicity::compute_hydrophobicity_score(vector<string> &atomnames, distances &r_matrix, Activity &activity, double &r_hydro, double &deltar_hydro)
+void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, distances &r_matrix, double &r_hydro, double &deltar_hydro)
+{
+ int size_grid=r_matrix.r_matrix.size();
+ 
+ //Ugly way to fill vectors
+ vector<double> d_hydro_i(atomnames.size(),0);
+ for (unsigned i=0; i<size_grid;i++)
+ {
+     hydrophobicity_grid.push_back(0);
+     d_hydrogrid_dx.push_back(d_hydro_i);
+     d_hydrogrid_dy.push_back(d_hydro_i);
+     d_hydrogrid_dz.push_back(d_hydro_i);
+ }
+
+ //#pragma omp parallel for
+ for (unsigned i=0; i<size_grid;i++)
+ {
+     double apolar_contacts=0;
+     vector<double> d_apolarcontacts_dx=d_hydro_i;
+     vector<double> d_apolarcontacts_dy=d_hydro_i;
+     vector<double> d_apolarcontacts_dz=d_hydro_i;
+     double polar_contacts=0;
+     vector<double> d_polarcontacts_dx=d_hydro_i;
+     vector<double> d_polarcontacts_dy=d_hydro_i;
+     vector<double> d_polarcontacts_dz=d_hydro_i;
+
+     for (unsigned j=0; j<atomnames.size();j++)
+     {
+        if (atomnames[j][0]=='C' or atomnames[j][0]=='S')
+         {
+          apolar_contacts+=contacts[i][j].S_off_value;
+          d_apolarcontacts_dx[j]+=contacts[i][j].d_Soff_dx[j];
+          d_apolarcontacts_dy[j]+=contacts[i][j].d_Soff_dy[j];
+          d_apolarcontacts_dz[j]+=contacts[i][j].d_Soff_dz[j];
+         }
+         else if (atomnames[j][0]=='N' or atomnames[j][0]=='O')
+         {
+          polar_contacts+=contacts[i][j].S_off_value;
+          d_polarcontacts_dx[j]+=contacts[i][j].d_Soff_dx[j];
+          d_polarcontacts_dy[j]+=contacts[i][j].d_Soff_dy[j];
+          d_polarcontacts_dz[j]+=contacts[i][j].d_Soff_dz[j];
+         }
+         else
+         {
+            cout << "with name " << atomnames[j] << endl;
+            cout << "Unknown aotm detected at position: " << j << ": " << atomnames[j] << ". Exiting." << endl;
+            exit(0);
+         }
+     }
+
+     double total_contacts=apolar_contacts+polar_contacts;
+     hydrophobicity_grid[i]=apolar_contacts/(total_contacts);
+     for (unsigned j=0; j<atomnames.size();j++)
+     {
+      d_hydrogrid_dx[i][j]=(polar_contacts*d_apolarcontacts_dx[j]-apolar_contacts*d_polarcontacts_dx[j])/pow(total_contacts,2);
+      d_hydrogrid_dy[i][j]=(polar_contacts*d_apolarcontacts_dy[j]-apolar_contacts*d_polarcontacts_dy[j])/pow(total_contacts,2);
+      d_hydrogrid_dz[i][j]=(polar_contacts*d_apolarcontacts_dz[j]-apolar_contacts*d_polarcontacts_dz[j])/pow(total_contacts,2);
+     }
+ }
+
+ for (unsigned i=0; i<size_grid; i++)
+ {
+   cout << "Hydrophobicity of grid point " << i << "= " << hydrophobicity_grid[i] << endl;
+   for (unsigned j=0; j<atomnames.size(); j++)
+   {
+        cout << "Derivatives with respect to atom " << j << " with name " << atomnames[j] << ": " << d_hydrogrid_dx[i][j] << " " <<
+                                                                   d_hydrogrid_dy[i][j] << " " <<
+                                                                   d_hydrogrid_dz[i][j] << " " << endl;
+   }
+ }
+
+};
+
+void Hydrophobicity::compute_hydrophobicity(vector<string> &atomnames, distances &r_matrix, Activity &activity, double &r_hydro, double &deltar_hydro)
 {
  compute_contacts(r_matrix,r_hydro,deltar_hydro);
-};
+ compute_hydrophobicity_grid(atomnames, r_matrix, r_hydro, deltar_hydro);
+ exit(0);
+}

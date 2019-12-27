@@ -189,7 +189,7 @@ void jedi::calculate() {
   volume.compute_volume(activity,volume_element);
 
   Hydrophobicity hydrophobicity;
-  hydrophobicity.compute_hydrophobicity_score(all_atoms.atomnames,distance_matrix,activity,params.r_hydro,params.deltar_hydro);
+  hydrophobicity.compute_hydrophobicity(all_atoms.atomnames,distance_matrix,activity,params.r_hydro,params.deltar_hydro);
 
   
   
