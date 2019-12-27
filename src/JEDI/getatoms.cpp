@@ -26,12 +26,21 @@ void getatoms::readAtoms(string &pdb_file)
         cout << "File: " << pdb_file.c_str() << " not found. Exiting." << endl; //JCN Aug2019: Needs to crash if the file is malformed. Also needs to do it with a plumed error.
         exit(0);
       }
-    atomnumbers = pdb_handle.getAtomNumbers();
-    positions = pdb_handle.getPositions();
-    for (int j=0; j<pdb_handle.getAtomNumbers().size(); j++)
+    atomlist = pdb_handle.getAtomNumbers();
+    
+    cout << "Entering atomnames loop " << endl;
+    for (int j=0; j<atomlist.size(); j++)
       {
-       atomnames.push_back(pdb_handle.getAtomName(atomnumbers[j]));
+       if (pdb_handle.getAtomName(atomlist[j])[0]=='C' or pdb_handle.getAtomName(atomlist[j])[0]=='S' or
+           pdb_handle.getAtomName(atomlist[j])[0]=='N' or pdb_handle.getAtomName(atomlist[j])[0]=='O' or
+           pdb_handle.getAtomName(atomlist[j])=="GRI" )
+           {
+              atomnames.push_back(pdb_handle.getAtomName(atomlist[j]));
+              atomnumbers.push_back(atomlist[j]);
+              positions.push_back(pdb_handle.getPositions()[j]);
+           }
       }
+      cout << "Exiting atomnames loop " << endl;
   }
 
 /*

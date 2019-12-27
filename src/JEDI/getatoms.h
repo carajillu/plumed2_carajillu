@@ -15,6 +15,8 @@ using namespace std;
 
 class getatoms
 {
+ private:
+    vector<PLMD::AtomNumber> atomlist;
  public:
     getatoms();
     void readAtoms(string &pdb_file);
