@@ -120,7 +120,7 @@ void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, dist
  }
 
  // Uncomment the following lines for testing
- 
+ /*
  for (unsigned i=0; i<size_grid; i++)
  {
    cout << "Hydrophobicity of grid point " << i << "= " << hydrophobicity_grid[i] << endl;
@@ -131,7 +131,7 @@ void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, dist
                                                                    d_hydrogrid_dz[i][j] << " " << endl;
    }
  }
- 
+ */
 
 };
 
@@ -184,6 +184,7 @@ void Hydrophobicity::compute_hydrophobicity(vector<string> &atomnames, distances
  }
 
  // Uncomment the following lines for testing
+ /*
  for (unsigned i=0; i<activity.activity.size();i++)
  {
      cout << "Point " << i << "Activity = " << activity.activity[i] << " h_i = " << hydrophobicity_grid[i] << endl;
@@ -195,6 +196,5 @@ void Hydrophobicity::compute_hydrophobicity(vector<string> &atomnames, distances
  {
   cout << "Derivatives with respect to atom j " << j << ": " << d_Ha_dx[j] << " "<< d_Ha_dy[j] << " " << d_Ha_dz[j] << " " << endl;
  }
-
-exit(0);
+ */
 }

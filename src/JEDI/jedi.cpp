@@ -171,6 +171,7 @@ void jedi::calculate() {
   /////////////////////////////////////////////////
   ///               JEDI score                   //
   /////////////////////////////////////////////////
+  
   distances distance_matrix;
   distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions);
 
@@ -180,7 +181,7 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dy,
                           distance_matrix.dr_matrix_dz,
                           params.theta);
-  
+    
   activity.compute_activities(min_dist.min_dist, min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
                               params.CC_mind,params.deltaCC,params.GP_min,params.GP_max,params.CC2_min,params.deltaCC2,params.Emin,params.deltaE);
     
@@ -190,12 +191,8 @@ void jedi::calculate() {
 
   Hydrophobicity hydrophobicity;
   hydrophobicity.compute_hydrophobicity(all_atoms.atomnames,distance_matrix,activity,params.r_hydro,params.deltar_hydro);
-
   
-  
-
-
-  double Jedi=12345;
+  double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
 
   setValue(Jedi);
   
