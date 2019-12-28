@@ -60,7 +60,7 @@ void mindist::compute_mindist(vector<vector<double>> &r_matrix,
   }
 
 //Uncomment the following lines for testing
-
+/*
 for (unsigned i=0; i< min_dist.size(); i++)
 {
   cout << "Mindist grid point " <<  i << ": " << min_dist[i] << endl; 
@@ -71,5 +71,5 @@ for (unsigned i=0; i< min_dist.size(); i++)
                                                             << d_mindist_dz[i][j] << endl;
   }
 }
-
+*/
 }

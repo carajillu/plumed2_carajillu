@@ -110,12 +110,15 @@ void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, dist
      }
 
      double total_contacts=apolar_contacts+polar_contacts;
-     hydrophobicity_grid[i]=apolar_contacts/(total_contacts);
-     for (unsigned j=0; j<atomnames.size();j++)
+     if (total_contacts > 0) 
      {
-      d_hydrogrid_dx[i][j]=(polar_contacts*d_apolarcontacts_dx[j]-apolar_contacts*d_polarcontacts_dx[j])/pow(total_contacts,2);
-      d_hydrogrid_dy[i][j]=(polar_contacts*d_apolarcontacts_dy[j]-apolar_contacts*d_polarcontacts_dy[j])/pow(total_contacts,2);
-      d_hydrogrid_dz[i][j]=(polar_contacts*d_apolarcontacts_dz[j]-apolar_contacts*d_polarcontacts_dz[j])/pow(total_contacts,2);
+      hydrophobicity_grid[i]=apolar_contacts/(total_contacts); //otherwise may give NaN
+      for (unsigned j=0; j<atomnames.size();j++)
+      {
+       d_hydrogrid_dx[i][j]=(polar_contacts*d_apolarcontacts_dx[j]-apolar_contacts*d_polarcontacts_dx[j])/pow(total_contacts,2);
+       d_hydrogrid_dy[i][j]=(polar_contacts*d_apolarcontacts_dy[j]-apolar_contacts*d_polarcontacts_dy[j])/pow(total_contacts,2);
+       d_hydrogrid_dz[i][j]=(polar_contacts*d_apolarcontacts_dz[j]-apolar_contacts*d_polarcontacts_dz[j])/pow(total_contacts,2);
+      }
      }
  }
 
@@ -173,16 +176,20 @@ void Hydrophobicity::compute_hydrophobicity(vector<string> &atomnames, distances
    }
  }
 
- Ha=hydro_activity_sum/activity_sum;
-
- #pragma omp parallel for
- for (unsigned j=0; j<atomnames.size();j++)
+ if (activity_sum>0) // Otherwise may give NaN
  {
-  d_Ha_dx[j]=(activity_sum*d_hydroactivity_sum_dx[j]-hydro_activity_sum*d_activity_sum_dx[j])/pow(activity_sum,2);
-  d_Ha_dy[j]=(activity_sum*d_hydroactivity_sum_dy[j]-hydro_activity_sum*d_activity_sum_dy[j])/pow(activity_sum,2);
-  d_Ha_dz[j]=(activity_sum*d_hydroactivity_sum_dz[j]-hydro_activity_sum*d_activity_sum_dz[j])/pow(activity_sum,2);
- }
+  Ha=hydro_activity_sum/activity_sum; 
 
+  #pragma omp parallel for
+  for (unsigned j=0; j<atomnames.size();j++)
+  {
+   d_Ha_dx[j]=(activity_sum*d_hydroactivity_sum_dx[j]-hydro_activity_sum*d_activity_sum_dx[j])/pow(activity_sum,2);
+   d_Ha_dy[j]=(activity_sum*d_hydroactivity_sum_dy[j]-hydro_activity_sum*d_activity_sum_dy[j])/pow(activity_sum,2);
+   d_Ha_dz[j]=(activity_sum*d_hydroactivity_sum_dz[j]-hydro_activity_sum*d_activity_sum_dz[j])/pow(activity_sum,2);
+  }
+ }
+ else  Ha=0.;
+  
  // Uncomment the following lines for testing
  /*
  for (unsigned i=0; i<activity.activity.size();i++)
