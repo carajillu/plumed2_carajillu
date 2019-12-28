@@ -44,6 +44,7 @@ jediparameters::jediparameters() //JCN Aug2019: Currently not being used, but le
   V_min = 0.0;
   deltaV_min = 0.0;
   resolution = 0.0;
+  r_max = 0.0;
 }
 
 void jediparameters::readParams(string &parameters_file)
@@ -116,6 +117,8 @@ void jediparameters::readParams(string &parameters_file)
 	deltaV_min = item;
       else if ( key == string("grid_resolution") )
 	resolution = item;
+      else if ( key == string("r_max") )
+	r_max = item;
     }
   fclose(fp);
 
@@ -141,4 +144,5 @@ void jediparameters::readParams(string &parameters_file)
   cout << "V_min  = " << V_min << endl;
   cout << "deltaV_min  = " << deltaV_min << endl;
   cout << "grid_resolution = " << resolution << endl;
+  cout << "r_max = " << r_max << endl;
 }

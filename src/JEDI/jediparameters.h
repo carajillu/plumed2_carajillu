@@ -35,5 +35,6 @@ public:
   double V_min;
   double deltaV_min;
   double resolution;
+  double r_max;
 };
 #endif
