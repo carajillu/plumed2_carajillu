@@ -172,27 +172,40 @@ void jedi::calculate() {
   ///               JEDI score                   //
   /////////////////////////////////////////////////
   
+
+  cout << "Shrinking binding site. Initial size: "<< all_atoms.positions.size() << endl;
+  all_atoms.select_atoms(all_atoms.positions,grid.positions,all_atoms.atomnumbers,all_atoms.atomnames,params.r_max);
+  cout << "Shrinking binding site. Final size: "<< all_atoms.positions.size() << endl;
+  
+  cout << "Computing distance matrix" << endl;
   distances distance_matrix;
   distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions);
 
+  cout << "Computing mindist" << endl;
   mindist min_dist;
   min_dist.compute_mindist(distance_matrix.r_matrix,
                           distance_matrix.dr_matrix_dx,
                           distance_matrix.dr_matrix_dy,
                           distance_matrix.dr_matrix_dz,
                           params.theta);
-    
+  
+  cout << "Computing activities" << endl;
   activity.compute_activities(min_dist.min_dist, min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
                               params.CC_mind,params.deltaCC,params.GP_min,params.GP_max,params.CC2_min,params.deltaCC2,params.Emin,params.deltaE);
-    
+  
+  cout << "Computing volume" << endl;
   Volume volume;
   double volume_element=pow(params.resolution,3);
   volume.compute_volume(activity,volume_element);
 
+  cout << "Computing hydrophobicity" << endl;
   Hydrophobicity hydrophobicity;
   hydrophobicity.compute_hydrophobicity(all_atoms.atomnames,distance_matrix,activity,params.r_hydro,params.deltar_hydro);
   
+  cout << "JEDI" << endl;
   double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
+
+  cout << "Volume = " << volume.volume << " Hydrophobicity = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
 
   setValue(Jedi);
   
