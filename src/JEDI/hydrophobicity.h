@@ -8,7 +8,10 @@ using namespace std;
 class Hydrophobicity
 {
  private:
-   vector<vector<S_off>> contacts;
+   vector<vector<double>> contacts;
+   vector<vector<double>> d_contacts_dx;
+   vector<vector<double>> d_contacts_dy;
+   vector<vector<double>> d_contacts_dz;
    void compute_contacts(distances &r_matrix, double &r_hydro, double &deltar_hydro);
    vector<double> hydrophobicity_grid;
    vector<vector<double>> d_hydrogrid_dx;

@@ -12,14 +12,16 @@ void Hydrophobicity::compute_contacts(distances &r_matrix, double &r_hydro, doub
 {
  int size_grid  = r_matrix.r_matrix.size();
  int atomnumber = r_matrix.r_matrix[0].size();
+ 
 
- S_off contact_ij(r_matrix.r_matrix[0][0],r_hydro,deltar_hydro,r_matrix.dr_matrix_dx[0],r_matrix.dr_matrix_dy[0],r_matrix.dr_matrix_dz[0]);
- vector<S_off> contacts_i(atomnumber,contact_ij);
- //Ugly way to fill vectors
- for (unsigned i=0;i<size_grid;i++)
- {
-     contacts.push_back(contacts_i);
- }
+ vector<double> contacts_i(atomnumber,0);
+ for (unsigned i=0; i<size_grid;i++)
+  {
+   contacts.push_back(contacts_i);
+   d_contacts_dx.push_back(contacts_i);
+   d_contacts_dy.push_back(contacts_i);
+   d_contacts_dz.push_back(contacts_i);
+  }
 
  #pragma omp parallel for
  for (unsigned i=0;i<size_grid;i++)
@@ -33,10 +35,15 @@ void Hydrophobicity::compute_contacts(distances &r_matrix, double &r_hydro, doub
       drij_dy[j]=r_matrix.dr_matrix_dy[i][j];
       vector<double> drij_dz(atomnumber,0);
       drij_dz[j]=r_matrix.dr_matrix_dz[i][j];
-
+      
       S_off contact_ij(r_matrix.r_matrix[i][j],r_hydro,deltar_hydro,drij_dx,drij_dy,drij_dz);
       contact_ij.compute_S_off();
-      contacts[i][j]=contact_ij;
+      contacts[i][j]=contact_ij.S_off_value;
+      
+      d_contacts_dx[i][j]=contact_ij.d_Soff_dx[j];
+      d_contacts_dy[i][j]=contact_ij.d_Soff_dy[j];
+      d_contacts_dz[i][j]=contact_ij.d_Soff_dz[j];
+      
     }
  }
 
@@ -47,13 +54,10 @@ void Hydrophobicity::compute_contacts(distances &r_matrix, double &r_hydro, doub
   cout << "grid point " << i << endl;
   for (unsigned j=0; j<atomnumber; j++)
   {
-    cout << "rij = " << r_matrix.r_matrix[i][j] << " S_off rij with atom " << j << ": " << contacts[i][j].S_off_value << endl;
-    for (unsigned l=0; l<atomnumber; l++)
-    {
-        cout << "Derivatives with respect to atom " << l << " " << contacts[i][j].d_Soff_dx[l] << " " <<
-                                                                   contacts[i][j].d_Soff_dy[l] << " " <<
-                                                                   contacts[i][j].d_Soff_dz[l] << " " << endl;
-    }
+    cout << "rij = " << r_matrix.r_matrix[i][j] << " S_off rij with atom " << j << ": " << contacts[i][j] << endl;
+    cout << "Derivatives with respect to atom " << j << " " << d_contacts_dx[i][j] << " " <<
+                                                               d_contacts_dy[i][j] << " " <<
+                                                               d_contacts_dz[i][j] << " " << endl;
   }
  }
  */
@@ -62,6 +66,7 @@ void Hydrophobicity::compute_contacts(distances &r_matrix, double &r_hydro, doub
 void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, distances &r_matrix, double &r_hydro, double &deltar_hydro)
 {
  int size_grid=r_matrix.r_matrix.size();
+ int atomnumber = atomnames.size();
  
  //Ugly way to fill vectors
  vector<double> d_hydro_i(atomnames.size(),0);
@@ -89,24 +94,26 @@ void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, dist
      {
         if (atomnames[j][0]=='C' or atomnames[j][0]=='S')
          {
-          apolar_contacts+=contacts[i][j].S_off_value;
-          d_apolarcontacts_dx[j]+=contacts[i][j].d_Soff_dx[j];
-          d_apolarcontacts_dy[j]+=contacts[i][j].d_Soff_dy[j];
-          d_apolarcontacts_dz[j]+=contacts[i][j].d_Soff_dz[j];
+          apolar_contacts+=contacts[i][j];
+          d_apolarcontacts_dx[j]+=d_contacts_dx[i][j];
+          d_apolarcontacts_dy[j]+=d_contacts_dy[i][j];
+          d_apolarcontacts_dz[j]+=d_contacts_dz[i][j];
          }
          else if (atomnames[j][0]=='N' or atomnames[j][0]=='O')
          {
-          polar_contacts+=contacts[i][j].S_off_value;
-          d_polarcontacts_dx[j]+=contacts[i][j].d_Soff_dx[j];
-          d_polarcontacts_dy[j]+=contacts[i][j].d_Soff_dy[j];
-          d_polarcontacts_dz[j]+=contacts[i][j].d_Soff_dz[j];
+          polar_contacts+=contacts[i][j];
+          d_polarcontacts_dx[j]+=d_contacts_dx[i][j];
+          d_polarcontacts_dy[j]+=d_contacts_dy[i][j];
+          d_polarcontacts_dz[j]+=d_contacts_dz[i][j];
+          
          }
+         
          else
          {
-            cout << "with name " << atomnames[j] << endl;
-            cout << "Unknown aotm detected at position: " << j << ": " << atomnames[j] << ". Exiting." << endl;
+            cout << "Unknown atom detected at position: " << j << ": " << atomnames[j] << ". Exiting." << endl;
             exit(0);
          }
+         
      }
 
      double total_contacts=apolar_contacts+polar_contacts;
