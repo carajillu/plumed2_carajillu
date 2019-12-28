@@ -30,7 +30,7 @@ void mindist::compute_mindist(vector<vector<double>> &r_matrix,
   
   // Fill vectors with zeros
   min_dist=grid_zeros;
-  for (unsigned j=0; j<protein_size;j++)
+  for (unsigned j=0; j<grid_size;j++)
   {
       d_mindist_dx.push_back(protein_zeros);
       d_mindist_dy.push_back(protein_zeros);
@@ -60,17 +60,16 @@ void mindist::compute_mindist(vector<vector<double>> &r_matrix,
   }
 
 //Uncomment the following lines for testing
-/*
+
 for (unsigned i=0; i< min_dist.size(); i++)
 {
   cout << "Mindist grid point " <<  i << ": " << min_dist[i] << endl; 
-  for (unsigned j=0; j<d_mindist_dx.size();j++)
+  for (unsigned j=0; j<d_mindist_dx[i].size();j++)
   {
    cout << "Derivatives with respect to atom " << j << ": " << d_mindist_dx[i][j]<< " " 
                                                             << d_mindist_dy[i][j]<< " " 
                                                             << d_mindist_dz[i][j] << endl;
   }
 }
-*/
-  
+
 }
