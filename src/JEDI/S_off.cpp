@@ -5,7 +5,7 @@
 The S_off object is initialised and the values of all its derivatives are set to 0.
 This helps speed up the code by simply not calculating them when m equals 0 or 1.
 */
-S_off::S_off(double &v, double &v0, double &delta_v, vector<double> &dv_dx, vector<double> &dv_dy, vector<double> &dv_dz)
+S_off::S_off(double v, double &v0, double &delta_v, vector<double> &dv_dx, vector<double> &dv_dy, vector<double> &dv_dz)
 {
  v;
  k=1; //hardcoded because it's always the same
