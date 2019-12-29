@@ -5,6 +5,9 @@
 
 using namespace std;
 
+#ifndef hydrophobicity_h_
+#define hydrophobicity_h_
+
 class Hydrophobicity
 {
  private:
@@ -29,3 +32,4 @@ class Hydrophobicity
    
 
 };
+#endif

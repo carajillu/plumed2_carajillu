@@ -5,7 +5,7 @@ using namespace std;
 
 Volume::Volume()
 {
-
+ volume=0;
 }
 
 void Volume::compute_volume(Activity &activity, double &volume_element)
@@ -19,7 +19,7 @@ void Volume::compute_volume(Activity &activity, double &volume_element)
   }
 
   //computing volume
-  #pragma omp parallel for 
+  #pragma omp parallel for reduction(+:volume)
   for (unsigned i=0; i<activity.activity.size();i++)
   {
       volume+=activity.activity[i]*volume_element;

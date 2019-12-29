@@ -166,7 +166,7 @@ void Hydrophobicity::compute_hydrophobicity(vector<string> &atomnames, distances
  vector<double> d_hydroactivity_sum_dy(atomnames.size());
  vector<double> d_hydroactivity_sum_dz(atomnames.size());
 
- #pragma omp parallel for
+ #pragma omp parallel for reduction(+:activity_sum,hydro_activity_sum)
  for (unsigned i=0; i<activity.activity.size();i++)
  {
    activity_sum+=activity.activity[i];
