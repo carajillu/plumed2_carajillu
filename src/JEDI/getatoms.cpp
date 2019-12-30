@@ -139,13 +139,12 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog
         if (r>r_max) 
            continue;
         positions_new.push_back(positions[j]);
-        atomnumbers_new.push_back(atomnumbers[j]);
+        atoms_jedi.push_back(j);
         atomnames_new.push_back(atomnames[j]);
         break;
       }
      }
      positions=positions_new;
-     atomnumbers=atomnumbers_new;
      atomnames=atomnames_new;
    }
 

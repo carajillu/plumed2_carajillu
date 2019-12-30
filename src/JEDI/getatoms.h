@@ -27,6 +27,7 @@ class getatoms
     vector<string> atomnames;
     vector<double> cog;
     vector<double> cog0;
+    vector<unsigned> atoms_jedi;
 };
 
 #endif

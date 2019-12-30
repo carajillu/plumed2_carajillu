@@ -103,6 +103,9 @@ jedi::jedi(const ActionOptions&ao):
   pbc(true),
   print_benchmark(false)
 {
+  int nthreads=omp_get_num_threads();
+  cout << "JEDI is running with " << nthreads << " OMP threads" << endl;
+
   /* INITIALISING CV AND DERIVATIVES */
   addValueWithDerivatives(); //Developers' note: this goes before requestAtoms()
   setNotPeriodic();
@@ -212,6 +215,18 @@ void jedi::calculate() {
   vector<double> dJedi_dx(all_atoms.atomnumbers.size(),0);
   vector<double> dJedi_dy(all_atoms.atomnumbers.size(),0);
   vector<double> dJedi_dz(all_atoms.atomnumbers.size(),0);
+
+  cout << "calculating derivatives" << endl;
+  #pragma omp parallel for
+  for (unsigned j=0; j<all_atoms.atoms_jedi.size();j++)
+  {
+    unsigned atom_idx=all_atoms.atoms_jedi[j];
+    dJedi_dx[atom_idx]=params.alpha*volume.d_volume_dx[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dx[j];
+    dJedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dy[j];
+    dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dz[j];
+  }
+
+  cout << "setting derivatives" << endl;
   #pragma omp parallel for
   for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
   {
