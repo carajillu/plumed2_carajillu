@@ -8,20 +8,17 @@ Hydrophobicity::Hydrophobicity()
 
 };
 
-void Hydrophobicity::compute_contacts(distances &r_matrix, double &r_hydro, double &deltar_hydro)
+void Hydrophobicity::compute_contacts(distances r_matrix, double r_hydro, double deltar_hydro)
 {
  int size_grid  = r_matrix.r_matrix.size();
  int atomnumber = r_matrix.r_matrix[0].size();
  
 
  vector<double> contacts_i(atomnumber,0);
- for (unsigned i=0; i<size_grid;i++)
-  {
-   contacts.push_back(contacts_i);
-   d_contacts_dx.push_back(contacts_i);
-   d_contacts_dy.push_back(contacts_i);
-   d_contacts_dz.push_back(contacts_i);
-  }
+ contacts=vector<vector<double>>(size_grid,contacts_i);
+ d_contacts_dx=vector<vector<double>>(size_grid,contacts_i);
+ d_contacts_dy=vector<vector<double>>(size_grid,contacts_i);
+ d_contacts_dz=vector<vector<double>>(size_grid,contacts_i);
 
  #pragma omp parallel for
  for (unsigned i=0;i<size_grid;i++)
@@ -63,22 +60,20 @@ void Hydrophobicity::compute_contacts(distances &r_matrix, double &r_hydro, doub
  */
 };
 
-void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, distances &r_matrix, double &r_hydro, double &deltar_hydro)
+void Hydrophobicity::compute_hydrophobicity_grid(vector<string> atomnames, distances r_matrix, double r_hydro, double deltar_hydro)
 {
  int size_grid=r_matrix.r_matrix.size();
  int atomnumber = atomnames.size();
  
- //Ugly way to fill vectors
+ 
+ 
+ hydrophobicity_grid=vector<double>(size_grid,0);
  vector<double> d_hydro_i(atomnames.size(),0);
- for (unsigned i=0; i<size_grid;i++)
- {
-     hydrophobicity_grid.push_back(0);
-     d_hydrogrid_dx.push_back(d_hydro_i);
-     d_hydrogrid_dy.push_back(d_hydro_i);
-     d_hydrogrid_dz.push_back(d_hydro_i);
- }
+ d_hydrogrid_dx=vector<vector<double>>(size_grid,d_hydro_i);
+ d_hydrogrid_dz=vector<vector<double>>(size_grid,d_hydro_i);
+ d_hydrogrid_dy=vector<vector<double>>(size_grid,d_hydro_i);
 
- //#pragma omp parallel for
+ #pragma omp parallel for
  for (unsigned i=0; i<size_grid;i++)
  {
      double apolar_contacts=0;
@@ -145,12 +140,11 @@ void Hydrophobicity::compute_hydrophobicity_grid(vector<string> &atomnames, dist
 
 };
 
-void Hydrophobicity::compute_hydrophobicity(vector<string> &atomnames, distances &r_matrix, Activity &activity, double &r_hydro, double &deltar_hydro)
+void Hydrophobicity::compute_hydrophobicity(vector<string> atomnames, distances r_matrix, Activity activity, double r_hydro, double deltar_hydro)
 {
  compute_contacts(r_matrix,r_hydro,deltar_hydro);
  compute_hydrophobicity_grid(atomnames, r_matrix, r_hydro, deltar_hydro);
  
- //Ugly way to fill vectors
  vector<double> d_hydro(atomnames.size(),0);
  d_Ha_dx=d_hydro;
  d_Ha_dy=d_hydro;

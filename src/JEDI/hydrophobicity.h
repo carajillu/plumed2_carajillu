@@ -15,19 +15,19 @@ class Hydrophobicity
    vector<vector<double>> d_contacts_dx;
    vector<vector<double>> d_contacts_dy;
    vector<vector<double>> d_contacts_dz;
-   void compute_contacts(distances &r_matrix, double &r_hydro, double &deltar_hydro);
+   void compute_contacts(distances r_matrix, double r_hydro, double deltar_hydro);
    vector<double> hydrophobicity_grid;
    vector<vector<double>> d_hydrogrid_dx;
    vector<vector<double>> d_hydrogrid_dy;
    vector<vector<double>> d_hydrogrid_dz;
-   void compute_hydrophobicity_grid(vector<string> &atomnames, distances &r_matrix, double &r_hydro, double &deltar_hydro);
+   void compute_hydrophobicity_grid(vector<string> atomnames, distances r_matrix, double r_hydro, double deltar_hydro);
  public:
    Hydrophobicity();
    double Ha;
    vector<double> d_Ha_dx;
    vector<double> d_Ha_dy;
    vector<double> d_Ha_dz;
-   void compute_hydrophobicity(vector<string> &atomnames, distances &r_matrix, Activity &activity, double &r_hydro, double &deltar_hydro);
+   void compute_hydrophobicity(vector<string> atomnames, distances r_matrix, Activity activity, double r_hydro, double deltar_hydro);
    
    
 

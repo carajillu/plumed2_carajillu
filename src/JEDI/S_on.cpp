@@ -5,7 +5,7 @@
 The S_on object is initialised and the values of all its derivatives are set to 0.
 This helps speed up the code by simply not calculating them when m equals 0 or 1.
 */
-S_on::S_on(double v, double &v0, double &delta_v, vector<double> &dv_dx, vector<double> &dv_dy, vector<double> &dv_dz)
+S_on::S_on(double v, double v0, double delta_v, vector<double> dv_dx, vector<double> dv_dy, vector<double> dv_dz)
 {
  v;
  k=1; //hardcoded because it's always the same
@@ -23,7 +23,7 @@ S_on::S_on(double v, double &v0, double &delta_v, vector<double> &dv_dx, vector<
 This function computes m_value and its derivatives, which are then passed on to compute_S_on.
 Since m_value is not used anywhere else in the code, this function is private to this class.
 */
-void S_on::compute_m(double &v, double &v0, double &delta_v, vector<double> &dv_dx, vector<double> &dv_dy, vector<double> &dv_dz)
+void S_on::compute_m(double v, double v0, double delta_v, vector<double> dv_dx, vector<double> dv_dy, vector<double> dv_dz)
 {
     m_value=(v-v0)/delta_v;
 

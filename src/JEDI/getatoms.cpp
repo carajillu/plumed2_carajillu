@@ -9,7 +9,7 @@ and the atom name, will be used later on for apolarpolar purposes.
 #include <sstream>
 #include <string>
 
-
+#include "core/ActionAtomistic.h"
 #include "getatoms.h"
 
 using namespace std;
@@ -18,7 +18,7 @@ getatoms::getatoms()
 {   
 }
 
-void getatoms::readAtoms(string &pdb_file)
+void getatoms::readAtoms(string pdb_file)
   {
     PLMD::PDB pdb_handle;
     if( !pdb_handle.read(pdb_file,false,0.1)) //PDB files are always in angstroms, so we need to rescale the coordinates by a factor of 10
@@ -28,7 +28,6 @@ void getatoms::readAtoms(string &pdb_file)
       }
     atomlist = pdb_handle.getAtomNumbers();
     
-    cout << "Entering atomnames loop " << endl;
     for (int j=0; j<atomlist.size(); j++)
       {
        if (pdb_handle.getAtomName(atomlist[j])[0]=='C' or pdb_handle.getAtomName(atomlist[j])[0]=='S' or
@@ -40,7 +39,6 @@ void getatoms::readAtoms(string &pdb_file)
               positions.push_back(pdb_handle.getPositions()[j]);
            }
       }
-      cout << "Exiting atomnames loop " << endl;
   }
 
 /*
@@ -56,7 +54,7 @@ This is done because we want to center the binding site on the origin of coordin
 relative location of the grid and the ligand (if any) with respect to the binding site, so grid and ligand are
 potentially centered on a point slightly displaced from the origin.
 */
-void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog_in)
+void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_in)
   {
     
     /* Depending on the size of cog_in, we decide if we have to calculate a
@@ -65,9 +63,7 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog
     */
     if (cog_in.size()==0)
     {
-     cog_in.push_back(0);
-     cog_in.push_back(0);
-     cog_in.push_back(0);
+     cog_in=vector<double>(3,0);
      for (unsigned j=0; j<positions.size();j++)
       {
        cog_in[0] += positions[j][0]/positions.size();
@@ -79,9 +75,7 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog
     else if (cog_in.size() == 3)
     {
      cout << "Removing alien of geometry: "<< cog_in[0] << " " << cog_in[1] << " " << cog_in[2] << endl;
-     cog0.push_back(0);
-     cog0.push_back(0);
-     cog0.push_back(0);
+     cog0=vector<double>(3,0);
      for (unsigned j=0; j<positions.size();j++)
       { 
        cog0[0] += positions[j][0]/positions.size();
@@ -113,9 +107,7 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog
     
     
     // Here we calculate the new cog (should be close to 0)
-    cog.push_back(0.);
-    cog.push_back(0.);
-    cog.push_back(0.);
+    cog=vector<double>(3,0);
     for (unsigned j=0; j<positions.size();j++)
        {
         cog[0] += positions[j][0]/positions.size();
@@ -124,7 +116,7 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog
        }
    }
    
-   void getatoms::select_atoms(vector<PLMD::Vector> &positions, vector<PLMD::Vector> grid_positions, vector<PLMD::AtomNumber> &atomnumbers, vector<string> &atomnames, double &r_max)
+   void getatoms::select_atoms(vector<PLMD::Vector> &positions, vector<PLMD::Vector> grid_positions, vector<string> &atomnames, double r_max)
    {
      vector<PLMD::Vector> positions_new;
      vector<PLMD::AtomNumber> atomnumbers_new;

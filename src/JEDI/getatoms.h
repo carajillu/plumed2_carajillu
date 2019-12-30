@@ -19,9 +19,9 @@ class getatoms
     vector<PLMD::AtomNumber> atomlist;
  public:
     getatoms();
-    void readAtoms(string &pdb_file);
-    void center_atoms(vector<PLMD::Vector> &positions, vector<double> &cog_in);
-    void select_atoms(vector<PLMD::Vector> &positions, vector<PLMD::Vector> grid_positions, vector<PLMD::AtomNumber> &atomnumbers, vector<string> &atomnames, double &r_max);
+    void readAtoms(string pdb_file);
+    void center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_in);
+    void select_atoms(vector<PLMD::Vector> &positions, vector<PLMD::Vector> grid_positions, vector<string> &atomnames, double r_max);
     vector<PLMD::AtomNumber> atomnumbers;
     vector<PLMD::Vector> positions;
     vector<string> atomnames;

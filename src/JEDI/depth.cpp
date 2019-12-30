@@ -2,16 +2,13 @@
 #include "activity.h"
 #include "kernel.h"
 
-void Activity::compute_depth(vector<vector<int>> &neighbours, vector<S_off> proximity)
+void Activity::compute_depth(vector<vector<int>> neighbours, vector<S_off> proximity)
 {
   vector<double> d_depth_i(proximity[0].d_Soff_dx.size());
-  for (unsigned i=0; i<neighbours.size();i++)
-  {
-    depth.push_back(0);
-    d_depth_dx.push_back(d_depth_i);
-    d_depth_dy.push_back(d_depth_i);
-    d_depth_dz.push_back(d_depth_i);
-  }
+  depth=vector<double>(neighbours.size(),0);
+  d_depth_dx=vector<vector<double>>(neighbours.size(),d_depth_i);
+  d_depth_dz=vector<vector<double>>(neighbours.size(),d_depth_i);
+  d_depth_dy=vector<vector<double>>(neighbours.size(),d_depth_i);
 
   #pragma omp parallel for
   for (unsigned i=0; i<neighbours.size();i++)

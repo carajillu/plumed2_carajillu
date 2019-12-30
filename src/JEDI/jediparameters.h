@@ -13,7 +13,7 @@ class jediparameters
 {
 public:
   jediparameters();
-  void readParams(string &parameters_file);
+  void readParams(string parameters_file);
   double alpha;
   double beta;
   double gamma;

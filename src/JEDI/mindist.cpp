@@ -14,29 +14,24 @@ This function returns the following vectors:
 3) vector<vector<double>> d_mindist_dy(protein_size,grid_size): same as 2) but for the y coordinate
 3) vector<vector<double>> d_mindist_dz(protein_size,grid_size): same as 2) but for the z coordinate
 */
-void mindist::compute_mindist(vector<vector<double>> &r_matrix, 
-                              vector<vector<double>> &dr_matrix_dx, 
-                              vector<vector<double>> &dr_matrix_dy, 
-                              vector<vector<double>> &dr_matrix_dz,
-                              double &theta)
+void mindist::compute_mindist(vector<vector<double>> r_matrix, 
+                              vector<vector<double>> dr_matrix_dx, 
+                              vector<vector<double>> dr_matrix_dy, 
+                              vector<vector<double>> dr_matrix_dz,
+                              double theta)
 {
   unsigned grid_size=r_matrix.size();
   unsigned protein_size=r_matrix[0].size();
-
-  vector<vector<double>> exp_r; //exponential term of Eq 5 JCTC 2015
-  
-  vector<double> protein_zeros(protein_size,0);
-  vector<double> grid_zeros(grid_size,0);
-  
+   
   // Fill vectors with zeros
-  min_dist=grid_zeros;
-  for (unsigned j=0; j<grid_size;j++)
-  {
-      d_mindist_dx.push_back(protein_zeros);
-      d_mindist_dy.push_back(protein_zeros);
-      d_mindist_dz.push_back(protein_zeros);
-      exp_r.push_back(protein_zeros);
-  }
+  min_dist=vector<double>(grid_size,0);
+
+  vector<double> protein_zeros(protein_size,0);
+  d_mindist_dx=vector<vector<double>>(grid_size,protein_zeros);
+  d_mindist_dy=vector<vector<double>>(grid_size,protein_zeros);
+  d_mindist_dz=vector<vector<double>>(grid_size,protein_zeros);
+  vector<vector<double>> exp_r(grid_size,protein_zeros); //exponential term of Eq 5 JCTC 2015
+  
   
   //Calculate mindist and its derivatives
   #pragma omp parallel for

@@ -8,15 +8,12 @@ Volume::Volume()
  volume=0;
 }
 
-void Volume::compute_volume(Activity &activity, double &volume_element)
+void Volume::compute_volume(Activity activity, double volume_element)
 {
   //Ugly way to fill vectors with zeros
-  for (unsigned j=0; j<activity.d_activity_dx[0].size();j++)
-  {
-    d_volume_dx.push_back(0);
-    d_volume_dy.push_back(0);
-    d_volume_dz.push_back(0);
-  }
+  d_volume_dx=vector<double>(activity.d_activity_dx[0].size(),0);
+  d_volume_dy=vector<double>(activity.d_activity_dx[0].size(),0);
+  d_volume_dz=vector<double>(activity.d_activity_dx[0].size(),0);
 
   //computing volume
   #pragma omp parallel for reduction(+:volume)

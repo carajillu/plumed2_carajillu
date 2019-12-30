@@ -13,18 +13,13 @@ Regarding the calculation of the derivatives, it must be noted that the numerato
 is the coordinate of the atom minus the coordinate of the grid. This is important because the derivatives of JEDI
 are calculated with respect to the atom coordinates. This order guarantees the correct directionality.
 */
-void distances::compute_distance_matrix(vector<PLMD::Vector> &protein, vector<PLMD::Vector> &grid)
+void distances::compute_distance_matrix(vector<PLMD::Vector> protein, vector<PLMD::Vector> grid)
 {
   vector<double> r_ij_vec(protein.size(),0); //inside vector
-  
-  //ugly way of initialising the vectors
-  for (unsigned i=0; i<grid.size();i++)
-  {
-   r_matrix.push_back(r_ij_vec);
-   dr_matrix_dx.push_back(r_ij_vec);
-   dr_matrix_dy.push_back(r_ij_vec);
-   dr_matrix_dz.push_back(r_ij_vec);
-  }
+  r_matrix=vector<vector<double>>(grid.size(),r_ij_vec);
+  dr_matrix_dx=vector<vector<double>>(grid.size(),r_ij_vec);
+  dr_matrix_dy=vector<vector<double>>(grid.size(),r_ij_vec);
+  dr_matrix_dz=vector<vector<double>>(grid.size(),r_ij_vec);
 
   #pragma omp parallel for
   for (unsigned i=0; i<grid.size();i++)

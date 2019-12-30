@@ -47,7 +47,7 @@ jediparameters::jediparameters() //JCN Aug2019: Currently not being used, but le
   r_max = 0.0;
 }
 
-void jediparameters::readParams(string &parameters_file)
+void jediparameters::readParams(string parameters_file)
 {
   FILE* fp=fopen(parameters_file.c_str(),"r");
   if (!fp)

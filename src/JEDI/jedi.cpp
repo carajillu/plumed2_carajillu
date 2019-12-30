@@ -74,12 +74,12 @@ namespace colvar {
 class jedi : public Colvar {
 private:  
   bool pbc;
+  int iteration = 0;
   jediparameters params;
   getatoms all_atoms;
   getatoms grid;
   getatoms ligand;
   Activity activity;
-  bool print_benchmark;
 public:
   explicit jedi(const ActionOptions&);
 // active methods:
@@ -100,8 +100,7 @@ void jedi::registerKeywords(Keywords& keys)
 
 jedi::jedi(const ActionOptions&ao):
   PLUMED_COLVAR_INIT(ao),
-  pbc(true),
-  print_benchmark(false)
+  pbc(true)
 {
   int nthreads=omp_get_num_threads();
   cout << "JEDI is running with " << nthreads << " OMP threads" << endl;
@@ -174,17 +173,19 @@ void jedi::calculate() {
   /////////////////////////////////////////////////
   ///               JEDI score                   //
   /////////////////////////////////////////////////
-  
 
-  cout << "Shrinking binding site. Initial size: "<< all_atoms.positions.size() << endl;
-  all_atoms.select_atoms(all_atoms.positions,grid.positions,all_atoms.atomnumbers,all_atoms.atomnames,params.r_max);
-  cout << "Shrinking binding site. Final size: "<< all_atoms.positions.size() << endl;
+  iteration++;
+  cout << "Iteration number: " << iteration << endl;
   
-  cout << "Computing distance matrix" << endl;
+  //cout << "Shrinking binding site. Initial size: "<< all_atoms.positions.size() << endl;
+  all_atoms.select_atoms(all_atoms.positions,grid.positions,all_atoms.atomnames,params.r_max);
+  //cout << "Shrinking binding site. Final size: "<< all_atoms.positions.size() << endl;
+  
+  
   distances distance_matrix;
   distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions);
 
-  cout << "Computing mindist" << endl;
+  
   mindist min_dist;
   min_dist.compute_mindist(distance_matrix.r_matrix,
                           distance_matrix.dr_matrix_dx,
@@ -192,23 +193,21 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dz,
                           params.theta);
   
-  cout << "Computing activities" << endl;
+  
   activity.compute_activities(min_dist.min_dist, min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
                               params.CC_mind,params.deltaCC,params.GP_min,params.GP_max,params.CC2_min,params.deltaCC2,params.Emin,params.deltaE);
   
-  cout << "Computing volume" << endl;
+  
   Volume volume;
   double volume_element=pow(params.resolution,3);
   volume.compute_volume(activity,volume_element);
 
-  cout << "Computing hydrophobicity" << endl;
+  
   Hydrophobicity hydrophobicity;
   hydrophobicity.compute_hydrophobicity(all_atoms.atomnames,distance_matrix,activity,params.r_hydro,params.deltar_hydro);
   
-  cout << "JEDI" << endl;
+  
   double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
-
-  cout << "Volume = " << volume.volume << " Hydrophobicity = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
 
   setValue(Jedi);
   
@@ -216,7 +215,7 @@ void jedi::calculate() {
   vector<double> dJedi_dy(all_atoms.atomnumbers.size(),0);
   vector<double> dJedi_dz(all_atoms.atomnumbers.size(),0);
 
-  cout << "calculating derivatives" << endl;
+  
   #pragma omp parallel for
   for (unsigned j=0; j<all_atoms.atoms_jedi.size();j++)
   {
@@ -226,13 +225,11 @@ void jedi::calculate() {
     dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dz[j];
   }
 
-  cout << "setting derivatives" << endl;
   #pragma omp parallel for
   for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
   {
     setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
   }
-  
 }
 
 }

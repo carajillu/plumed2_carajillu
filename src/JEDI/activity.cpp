@@ -18,12 +18,13 @@ Activity::Activity()
  the grid, the parameters CCmin and deltaCC (to compute close contact), 
  GPmin and GPmax (to compute neighbours) and CC2min and deltaCC2 (to compute depth)
 */
-void Activity::Activity_init(vector<PLMD::Vector> &positions,
-                   double &CC_min, double deltaCC,
-                   double &GPmin, double &GPmax,
-                   double &CC2_min, double &deltaCC2)
+void Activity::Activity_init(vector<PLMD::Vector> positions,
+                   double CC_min, double deltaCC,
+                   double GPmin, double GPmax,
+                   double CC2_min, double deltaCC2)
 {
   cout << "Computing grid neighbours" << endl;
+  activity=vector<double>(positions.size(),0);
   compute_neighbours(positions, GPmin, GPmax);
 }
 
@@ -36,7 +37,7 @@ void Activity::Activity_init(vector<PLMD::Vector> &positions,
  1 at the bottom, one in front, one at the back. The point in the middle returns 
  6 neighbours (correct) as opposed to 3 for the simpler condition form.
  */
-void Activity::compute_neighbours(vector<PLMD::Vector> &positions,double &GPmin, double &GPmax)
+void Activity::compute_neighbours(vector<PLMD::Vector> positions,double GPmin, double GPmax)
 {
  vector<int> neighbours_i;
  neighbours.assign(positions.size(),neighbours_i);
@@ -61,24 +62,21 @@ void Activity::compute_neighbours(vector<PLMD::Vector> &positions,double &GPmin,
   cout << "Maximum number of grid point neighbours: " << max_neighbours << endl;
 }
 
-void Activity::compute_activities(vector<double> &mindist, 
-                                 vector<vector<double>> &d_mindist_dx,
-                                 vector<vector<double>> &d_mindist_dy,
-                                 vector<vector<double>> &d_mindist_dz,
-                                double &CC_min, double &deltaCC,
-                                double &GPmin, double &GPmax,
-                                double &CC2_min, double &deltaCC2,
-                                double &Emin, double &deltaE)
+void Activity::compute_activities(vector<double> mindist, 
+                                 vector<vector<double>> d_mindist_dx,
+                                 vector<vector<double>> d_mindist_dy,
+                                 vector<vector<double>> d_mindist_dz,
+                                double CC_min, double deltaCC,
+                                double GPmin, double GPmax,
+                                double CC2_min, double deltaCC2,
+                                double Emin, double deltaE)
 {
   //Ugly way to fill vectors with zeros
   vector<double> d_activity_i(d_mindist_dx[0].size(),0);
-  for (unsigned i=0; i<mindist.size();i++)
-  {
-    activity.push_back(0);
-    d_activity_dx.push_back(d_activity_i);
-    d_activity_dy.push_back(d_activity_i);
-    d_activity_dz.push_back(d_activity_i);
-  }
+  
+  d_activity_dx=vector<vector<double>>(mindist.size(),d_activity_i);
+  d_activity_dy=vector<vector<double>>(mindist.size(),d_activity_i);
+  d_activity_dz=vector<vector<double>>(mindist.size(),d_activity_i);
 
   //Compute farawayness first because we need it for depth
   S_off proximity_i(mindist[0],CC2_min,deltaCC2,d_mindist_dx[0],d_mindist_dy[0],d_mindist_dz[0]);
