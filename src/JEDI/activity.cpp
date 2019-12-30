@@ -53,7 +53,7 @@ void Activity::compute_neighbours(vector<PLMD::Vector> &positions,double &GPmin,
       }
      }
    }
-   int max_neighbours=0;
+  
   for (unsigned i=0; i<positions.size();i++)
   {
    if (neighbours[i].size() > max_neighbours) max_neighbours = neighbours[i].size();

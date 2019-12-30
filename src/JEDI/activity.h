@@ -18,6 +18,7 @@ class Activity
    vector<vector<double>> d_depth_dx;
    vector<vector<double>> d_depth_dy;
    vector<vector<double>> d_depth_dz;
+   int max_neighbours=0;
    void compute_depth(vector<vector<int>> &neighbours,vector<S_off> farawayness);
 
    // depth and close_contact are just need a S_on_grid object, hence not declared here

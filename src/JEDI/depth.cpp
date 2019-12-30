@@ -19,12 +19,12 @@ void Activity::compute_depth(vector<vector<int>> &neighbours, vector<S_off> prox
       for (unsigned k=0; k<neighbours[i].size();k++)
       {
           int neighbour_idx = neighbours[i][k];
-          depth[i]+=proximity[neighbour_idx].S_off_value;
+          depth[i]+=proximity[neighbour_idx].S_off_value/max_neighbours;
           for (unsigned j=0; j<d_depth_dx[i].size();j++)
           {  
-            d_depth_dx[i][j]+=proximity[neighbour_idx].d_Soff_dx[j];
-            d_depth_dy[i][j]+=proximity[neighbour_idx].d_Soff_dy[j];
-            d_depth_dz[i][j]+=proximity[neighbour_idx].d_Soff_dz[j];
+            d_depth_dx[i][j]+=proximity[neighbour_idx].d_Soff_dx[j]/max_neighbours;
+            d_depth_dy[i][j]+=proximity[neighbour_idx].d_Soff_dy[j]/max_neighbours;
+            d_depth_dz[i][j]+=proximity[neighbour_idx].d_Soff_dz[j]/max_neighbours;
           }
       }
   }
