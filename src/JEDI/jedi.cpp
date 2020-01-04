@@ -102,8 +102,19 @@ jedi::jedi(const ActionOptions&ao):
   PLUMED_COLVAR_INIT(ao),
   pbc(true)
 {
-  int nthreads=omp_get_num_threads();
-  cout << "JEDI is running with " << nthreads << " OMP threads" << endl;
+  #pragma omp parallel
+  {
+   #pragma omp single
+    {
+     int nthreads=omp_get_num_threads();
+     cout << "JEDI is running with " << nthreads << " OMP threads" << endl;
+    }
+   #pragma omp critical
+    {
+     int thread_id=omp_get_thread_num();
+     cout << "This is thread number " << thread_id << endl;
+    }
+  }
 
   /* INITIALISING CV AND DERIVATIVES */
   addValueWithDerivatives(); //Developers' note: this goes before requestAtoms()

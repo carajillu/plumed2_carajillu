@@ -20,7 +20,7 @@ void Hydrophobicity::compute_contacts(distances r_matrix, double r_hydro, double
  d_contacts_dy=vector<vector<double>>(size_grid,contacts_i);
  d_contacts_dz=vector<vector<double>>(size_grid,contacts_i);
 
- #pragma omp parallel for
+ //#pragma omp parallel for
  for (unsigned i=0;i<size_grid;i++)
  {
     for (unsigned j=0; j<atomnumber; j++)
@@ -65,15 +65,13 @@ void Hydrophobicity::compute_hydrophobicity_grid(vector<string> atomnames, dista
  int size_grid=r_matrix.r_matrix.size();
  int atomnumber = atomnames.size();
  
- 
- 
  hydrophobicity_grid=vector<double>(size_grid,0);
  vector<double> d_hydro_i(atomnames.size(),0);
  d_hydrogrid_dx=vector<vector<double>>(size_grid,d_hydro_i);
  d_hydrogrid_dz=vector<vector<double>>(size_grid,d_hydro_i);
  d_hydrogrid_dy=vector<vector<double>>(size_grid,d_hydro_i);
 
- #pragma omp parallel for
+ //#pragma omp parallel for
  for (unsigned i=0; i<size_grid;i++)
  {
      double apolar_contacts=0;
@@ -160,7 +158,7 @@ void Hydrophobicity::compute_hydrophobicity(vector<string> atomnames, distances 
  vector<double> d_hydroactivity_sum_dy(atomnames.size());
  vector<double> d_hydroactivity_sum_dz(atomnames.size());
 
- #pragma omp parallel for reduction(+:activity_sum,hydro_activity_sum)
+ //#pragma omp parallel for reduction(+:activity_sum,hydro_activity_sum)
  for (unsigned i=0; i<activity.activity.size();i++)
  {
    activity_sum+=activity.activity[i];
@@ -181,7 +179,7 @@ void Hydrophobicity::compute_hydrophobicity(vector<string> atomnames, distances 
  {
   Ha=hydro_activity_sum/activity_sum; 
 
-  #pragma omp parallel for
+  //#pragma omp parallel for
   for (unsigned j=0; j<atomnames.size();j++)
   {
    d_Ha_dx[j]=(activity_sum*d_hydroactivity_sum_dx[j]-hydro_activity_sum*d_activity_sum_dx[j])/pow(activity_sum,2);
