@@ -122,10 +122,10 @@ jedi::jedi(const ActionOptions&ao):
   parse("BINDINGSITE",pdb_bsite);
   all_atoms.readAtoms(pdb_bsite);
   cout << "Loaded file " << pdb_bsite << " and found " << all_atoms.atomnumbers.size() << " elements." << endl;
-  cout << "Moving center of geometry towards origin (0,0,0)" << endl;
-  vector<double> cog_atoms;
-  all_atoms.center_atoms(all_atoms.positions,cog_atoms);
-  cout << "Center of geometry went from: " << all_atoms.cog0[0] << "," << all_atoms.cog0[1] << "," << all_atoms.cog0[2] << " to " << \
+  //cout << "Moving center of geometry towards origin (0,0,0)" << endl;
+  //vector<double> cog_atoms;
+  //all_atoms.center_atoms(all_atoms.positions,cog_atoms);
+  //cout << "Center of geometry went from: " << all_atoms.cog0[0] << "," << all_atoms.cog0[1] << "," << all_atoms.cog0[2] << " to " << \
                                               all_atoms.cog[0] << "," << all_atoms.cog[1] << "," << all_atoms.cog[2] << endl;
   requestAtoms(all_atoms.atomnumbers);
 
@@ -135,9 +135,9 @@ jedi::jedi(const ActionOptions&ao):
   parse("GRID",pdb_grid);
   grid.readAtoms(pdb_grid);
   cout << "Loaded file " << pdb_grid << " and found " << grid.atomnumbers.size() << " elements." << endl;
-  cout << "Moving center of geometry towards origin (0,0,0)" << endl;
-  grid.center_atoms(grid.positions,all_atoms.cog0);
-  cout << "Center of geometry went from: " << grid.cog0[0] << "," << grid.cog0[1] << "," << grid.cog0[2] << " to " << \
+  //cout << "Moving center of geometry towards origin (0,0,0)" << endl;
+  //grid.center_atoms(grid.positions,all_atoms.cog0);
+  //cout << "Center of geometry went from: " << grid.cog0[0] << "," << grid.cog0[1] << "," << grid.cog0[2] << " to " << \
                                               grid.cog[0] << "," << grid.cog[1] << "," << grid.cog[2] << endl;
 
   //Read reference ligand file (to be deprecated)
@@ -148,9 +148,9 @@ jedi::jedi(const ActionOptions&ao):
    cout << "*********************************" << endl;
    ligand.readAtoms(pdb_ligand);
    cout << "Loaded file " << pdb_ligand << " and found " << ligand.atomnumbers.size() << " elements." << endl;
-   cout << "Moving center of geometry towards origin (0,0,0)" << endl;
-   ligand.center_atoms(ligand.positions,all_atoms.cog0);
-   cout << "Center of geometry went from: " << ligand.cog0[0] << "," << ligand.cog0[1] << "," << ligand.cog0[2] << " to " << \
+   //cout << "Moving center of geometry towards origin (0,0,0)" << endl;
+   //ligand.center_atoms(ligand.positions,all_atoms.cog0);
+   //cout << "Center of geometry went from: " << ligand.cog0[0] << "," << ligand.cog0[1] << "," << ligand.cog0[2] << " to " << \
                                               ligand.cog[0] << "," << ligand.cog[1] << "," << ligand.cog[2] << endl;
   }
   cout << "*********************************" << endl;
@@ -170,17 +170,18 @@ jedi::jedi(const ActionOptions&ao):
 // calculator
 void jedi::calculate() {
   
-  /////////////////////////////////////////////////
-  ///               JEDI score                   //
-  /////////////////////////////////////////////////
-
-  iteration++;
-  cout << "Iteration number: " << iteration << endl;
-  
   //cout << "Shrinking binding site. Initial size: "<< all_atoms.positions.size() << endl;
+  all_atoms.positions.clear();
+  for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
+  {
+    all_atoms.positions.push_back(getPosition(j));
+  }
   all_atoms.select_atoms(all_atoms.positions,grid.positions,all_atoms.atomnames,params.r_max);
   //cout << "Shrinking binding site. Final size: "<< all_atoms.positions.size() << endl;
   
+  /////////////////////////////////////////////////
+  //                JEDI score                   //
+  /////////////////////////////////////////////////
   
   distances distance_matrix;
   distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions);
@@ -230,6 +231,10 @@ void jedi::calculate() {
   {
     setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
   }
+
+  iteration++;
+  cout << "Iteration number: " << iteration;
+  cout << "Volume = " << volume.volume << " Hydrophobicity = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
 }
 
 }
