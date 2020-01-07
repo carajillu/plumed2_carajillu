@@ -39,7 +39,7 @@ void distances::compute_distance_matrix(vector<PLMD::Vector> protein, vector<PLM
   }
   
   //Uncomment the following lines for testing
-  
+  /*
   for (unsigned i=0; i<grid.size();i++)
   {
     for (unsigned j=0; j<protein.size(); j++)
@@ -51,6 +51,6 @@ void distances::compute_distance_matrix(vector<PLMD::Vector> protein, vector<PLM
                                                                                     << ")" << endl;
     }
   }
-  
+  */
 }
 

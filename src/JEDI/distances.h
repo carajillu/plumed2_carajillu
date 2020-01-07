@@ -32,19 +32,4 @@ class mindist
                        double theta);
 };
 
-class contacts
-{
-public:
- contacts();
- vector<vector<double>> contacts_matrix;
- vector<vector<double>> d_contacts_dx;
- vector<vector<double>> d_contacts_dy;
- vector<vector<double>> d_contacts_dz;
- void compute_contacts(vector<vector<double>> r_matrix, 
-                       vector<vector<double>> dr_matrix_dx, 
-                       vector<vector<double>> dr_matrix_dy, 
-                       vector<vector<double>> dr_matrix_dz,
-                       double CC2min, double deltaCC2);
-
-};
 #endif

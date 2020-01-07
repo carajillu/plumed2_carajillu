@@ -52,11 +52,12 @@
 #include "getatoms.h" // Class to read in atoms and grid
 
 //Classes necessary for initialisation and calculation of the Collective variable
-#include "distances.h"
 #include "kernel.h"
+#include "distances.h"
+#include "contacts.h"
 #include "activity.h"
-#include "volume.h"
-#include "hydrophobicity.h"
+//#include "volume.h"
+//#include "hydrophobicity.h"
 
 
 #include "kabsch.h" // kabsch algorithm for grid update
@@ -79,7 +80,6 @@ private:
   getatoms all_atoms;
   getatoms grid;
   getatoms ligand;
-  Activity activity;
 public:
   explicit jedi(const ActionOptions&);
 // active methods:
@@ -169,12 +169,6 @@ jedi::jedi(const ActionOptions&ao):
    
   /*INITIALISING COLLECTIVE VARIABLE*/
   cout << "INITIALISING JEDI COLLECTIVE VARIABLE" << endl;
-  
-  activity.Activity_init(grid.positions, 
-                    params.CC_mind, params.deltaCC,
-                    params.GP_min,params.GP_max,
-                    params.CC2_min, params.deltaCC2);
-  
 }
 
 
@@ -219,19 +213,37 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dz,
                           params.theta);
                           
-  contacts contacts;
-  contacts.compute_contacts(distance_matrix.r_matrix,
-                            distance_matrix.dr_matrix_dx,
-                            distance_matrix.dr_matrix_dy,
-                            distance_matrix.dr_matrix_dz,
-                            params.CC2_min, params.deltaCC2);
+  contacts_Soff contacts;
+  contacts.compute_contacts_S_off(distance_matrix.r_matrix,
+                                  distance_matrix.dr_matrix_dx,
+                                  distance_matrix.dr_matrix_dy,
+                                  distance_matrix.dr_matrix_dz,
+                                  params.r_hydro, params.deltar_hydro);
 
+  //delete(&distance_matrix);
+
+  contacts_sum contacts_sum;
+  contacts_sum.compute_contacts_sum(contacts.contacts_matrix,
+                                    contacts.d_contacts_dx,
+                                    contacts.d_contacts_dy,
+                                    contacts.d_contacts_dz,
+                                    all_atoms.atomnames);
+  //delete(&contacts);
+
+  
+  activity activity;
+  activity.compute_activities(min_dist.min_dist, 
+                              min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
+                              params.CC_mind,params.deltaCC,
+                              contacts_sum.contacts_apolar,
+                              contacts_sum.d_contacts_apolar_dx,contacts_sum.d_contacts_apolar_dy,contacts_sum.d_contacts_apolar_dz,
+                              contacts_sum.contacts_polar,
+                              contacts_sum.d_contacts_polar_dx,contacts_sum.d_contacts_polar_dy,contacts_sum.d_contacts_polar_dz,
+                              params.Emin, params.deltaE);
+  
   exit(0);
-  
-  activity.compute_activities(min_dist.min_dist, min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
-                              params.CC_mind,params.deltaCC,params.GP_min,params.GP_max,params.CC2_min,params.deltaCC2,params.Emin,params.deltaE);
-  
-  
+
+/* 
   Volume volume;
   double volume_element=pow(params.resolution,3);
   volume.compute_volume(activity,volume_element);
@@ -242,14 +254,15 @@ void jedi::calculate() {
   
   
   double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
-
+*/
+  double Jedi=1245;
   setValue(Jedi);
   
   vector<double> dJedi_dx(all_atoms.atomnumbers.size(),0);
   vector<double> dJedi_dy(all_atoms.atomnumbers.size(),0);
   vector<double> dJedi_dz(all_atoms.atomnumbers.size(),0);
 
-  
+  /*
   #pragma omp parallel for
   for (unsigned j=0; j<all_atoms.atoms_jedi.size();j++)
   {
@@ -258,16 +271,16 @@ void jedi::calculate() {
     dJedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dy[j];
     dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dz[j];
   }
-
+*/
   #pragma omp parallel for
   for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
   {
     setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
   }
 
-  iteration++;
-  cout << "Iteration number: " << iteration;
-  cout << "Volume = " << volume.volume << " Hydrophobicity = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
+  //iteration++;
+  //cout << "Iteration number: " << iteration;
+  //cout << "Volume = " << volume.volume << " Hydrophobicity = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
 }
 
 }
