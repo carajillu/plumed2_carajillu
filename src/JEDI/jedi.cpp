@@ -180,15 +180,29 @@ jedi::jedi(const ActionOptions&ao):
 
 // calculator
 void jedi::calculate() {
+  if (pbc) makeWhole();
+
+  /////////////////////////////////////////////////
+  // Update Grid coordinates and Binding site    //
+  /////////////////////////////////////////////////
+
+  /*
+  The cubic grid is updated by simply centering it
+  in the COG of a rigid part of the ligand
+  */
   
-  //cout << "Shrinking binding site. Initial size: "<< all_atoms.positions.size() << endl;
+  /*
+  Shrink grid and binding site so that only atoms/points that
+  are within interacting distance from each other are kept
+  */
   all_atoms.positions.clear();
   for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
   {
     all_atoms.positions.push_back(getPosition(j));
   }
   all_atoms.select_atoms(all_atoms.positions,grid.positions,all_atoms.atomnames,params.r_max);
-  //cout << "Shrinking binding site. Final size: "<< all_atoms.positions.size() << endl;
+  //grid.select_atoms(grid.positions,all_atoms.positions,grid.atomnames,params.r_max); //NOT YET
+  
   
   /////////////////////////////////////////////////
   //                JEDI score                   //
@@ -204,7 +218,15 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dy,
                           distance_matrix.dr_matrix_dz,
                           params.theta);
-  
+                          
+  contacts contacts;
+  contacts.compute_contacts(distance_matrix.r_matrix,
+                            distance_matrix.dr_matrix_dx,
+                            distance_matrix.dr_matrix_dy,
+                            distance_matrix.dr_matrix_dz,
+                            params.CC2_min, params.deltaCC2);
+
+  exit(0);
   
   activity.compute_activities(min_dist.min_dist, min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
                               params.CC_mind,params.deltaCC,params.GP_min,params.GP_max,params.CC2_min,params.deltaCC2,params.Emin,params.deltaE);
