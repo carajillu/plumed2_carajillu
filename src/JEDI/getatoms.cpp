@@ -119,8 +119,6 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_
    void getatoms::select_atoms(vector<PLMD::Vector> &positions, vector<PLMD::Vector> grid_positions, vector<string> &atomnames, double r_max)
    {
      vector<PLMD::Vector> positions_new;
-     vector<PLMD::AtomNumber> atomnumbers_new;
-     vector<string> atomnames_new;
 
      // NOT PARALLEL BECAUSE ORDER IN ABOVE VECTORS MATTERS, AND WE DON'T KNOW THER SIZES YET
      for (unsigned j=0;j<positions.size();j++)
@@ -132,12 +130,11 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_
            continue;
         positions_new.push_back(positions[j]);
         atoms_jedi.push_back(j);
-        atomnames_new.push_back(atomnames[j]);
+        atomnames_jedi.push_back(atomnames[j]);
         break;
       }
      }
      positions=positions_new;
-     atomnames=atomnames_new;
    }
 
    

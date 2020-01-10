@@ -25,6 +25,7 @@ class getatoms
     vector<PLMD::AtomNumber> atomnumbers;
     vector<PLMD::Vector> positions;
     vector<string> atomnames;
+    vector<string> atomnames_jedi;
     vector<double> cog;
     vector<double> cog0;
     vector<unsigned> atoms_jedi;
