@@ -75,7 +75,6 @@ namespace colvar {
 class jedi : public Colvar {
 private:  
   bool pbc;
-  int iteration = 0;
   jediparameters params;
   getatoms all_atoms;
   getatoms grid;
@@ -189,7 +188,8 @@ void jedi::calculate() {
   Shrink grid and binding site so that only atoms/points that
   are within interacting distance from each other are kept
   */
-  
+  all_atoms.atoms_jedi.clear();
+  all_atoms.atomnames_jedi.clear();
   all_atoms.positions.clear();
   for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
   {
@@ -229,7 +229,7 @@ void jedi::calculate() {
                                     contacts.d_contacts_dx,
                                     contacts.d_contacts_dy,
                                     contacts.d_contacts_dz,
-                                    all_atoms.atomnames);
+                                    all_atoms.atomnames_jedi);
 
   
   activity activity;
@@ -261,42 +261,26 @@ void jedi::calculate() {
   
   
   double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
-  //double Jedi=volume.volume;
-  //double Jedi=hydrophobicity.Ha;
-  cout << "Jedi = " << Jedi << endl;
-
   setValue(Jedi);
 
-  
   vector<double> dJedi_dx(all_atoms.atomnumbers.size(),0);
   vector<double> dJedi_dy(all_atoms.atomnumbers.size(),0);
   vector<double> dJedi_dz(all_atoms.atomnumbers.size(),0);
 
-  
   #pragma omp parallel for
   for (unsigned j=0; j<all_atoms.atoms_jedi.size();j++)
   {
     unsigned atom_idx=all_atoms.atoms_jedi[j];
-    //dJedi_dx[atom_idx]=volume.d_volume_dx[j];
-    //dJedi_dy[atom_idx]=volume.d_volume_dy[j];
-    //dJedi_dz[atom_idx]=volume.d_volume_dz[j];
-    //dJedi_dx[atom_idx]=hydrophobicity.d_Ha_dx[j];
-    //dJedi_dy[atom_idx]=hydrophobicity.d_Ha_dy[j];
-    //dJedi_dz[atom_idx]=hydrophobicity.d_Ha_dz[j];
     dJedi_dx[atom_idx]=params.alpha*volume.d_volume_dx[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dx[j];
     dJedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dy[j];
     dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dz[j];
   }
-
+  
   #pragma omp parallel for
   for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
   {
     setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
   }
-
-  //iteration++;
-  //cout << "Iteration number: " << iteration;
-  //cout << "Volume = " << volume.volume << " Hydrophobicity = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
 }
 
 }
