@@ -20,14 +20,10 @@ void activity::compute_activities(vector<double> mindist,
                                   vector<vector<double>> d_mindist_dy,
                                   vector<vector<double>> d_mindist_dz,
                                   double CC_min, double deltaCC,
-                                  vector<double> apolar_contacts,
-                                  vector<vector<double>> d_apolar_dx,
-                                  vector<vector<double>> d_apolar_dy,
-                                  vector<vector<double>> d_apolar_dz,
-                                  vector<double> polar_contacts,
-                                  vector<vector<double>> d_polar_dx,
-                                  vector<vector<double>> d_polar_dy,
-                                  vector<vector<double>> d_polar_dz,
+                                  vector<double> total_contacts,
+                                  vector<vector<double>> d_contacts_total_dx,
+                                  vector<vector<double>> d_contacts_total_dy,
+                                  vector<vector<double>> d_contacts_total_dz,
                                   double Emin, double deltaE)
 {
   
@@ -49,15 +45,7 @@ void activity::compute_activities(vector<double> mindist,
    S_on close_contact_i(mindist[i],CC_min,deltaCC,d_mindist_dx[i],d_mindist_dy[i],d_mindist_dz[i]);
    close_contact_i.compute_S_on();
 
-   /* Notice here that d_polar values are added to d_apolar. 
-      This is using a local copy of the object so it should 
-      not affect the values of the original contacts object
-   */
-   double total_contacts=apolar_contacts[i]+polar_contacts[i];
-   transform(d_polar_dx[i].begin(),d_polar_dx[i].end(),d_apolar_dx[i].begin(),d_polar_dx[i].begin(),plus<double>());
-   transform(d_polar_dy[i].begin(),d_polar_dy[i].end(),d_apolar_dy[i].begin(),d_polar_dy[i].begin(),plus<double>());
-   transform(d_polar_dz[i].begin(),d_polar_dz[i].end(),d_apolar_dz[i].begin(),d_polar_dz[i].begin(),plus<double>());
-   S_on depth_i(total_contacts,Emin,deltaE,d_polar_dx[i],d_polar_dy[i],d_polar_dz[i]);
+   S_on depth_i(total_contacts[i],Emin,deltaE,d_contacts_total_dx[i],d_contacts_total_dy[i],d_contacts_total_dz[i]);
    depth_i.compute_S_on();
 
    activity_grid[i]=close_contact_i.S_on_value*depth_i.S_on_value;

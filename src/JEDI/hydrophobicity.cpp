@@ -28,12 +28,8 @@ void hydrophobicity::compute_hydrophobicity(vector<double> contacts_apolar,
   d_Ha_dz=vector<double>(size_protein,0);
 
   vector<double> d_hydroactivity_dx(size_protein,0);
-  vector<double> d_hydroactivity_dz(size_protein,0);
   vector<double> d_hydroactivity_dy(size_protein,0);
-
-  vector<double> d_total_contacts_dx(size_protein,0);
-  vector<double> d_total_contacts_dy(size_protein,0);
-  vector<double> d_total_contacts_dz(size_protein,0);
+  vector<double> d_hydroactivity_dz(size_protein,0);
   
 
   for (unsigned i=0; i<size_grid;i++)
@@ -42,9 +38,9 @@ void hydrophobicity::compute_hydrophobicity(vector<double> contacts_apolar,
    
    for(unsigned j=0;j<size_protein;j++)
    {
-    double d_hydrogrid_dx_ij=(total_contacts[i]*d_apolar_dx[i][j]-d_total_contacts_dx[i]*contacts_apolar[i])/pow(total_contacts[i],2);
-    double d_hydrogrid_dy_ij=(total_contacts[i]*d_apolar_dy[i][j]-d_total_contacts_dy[i]*contacts_apolar[i])/pow(total_contacts[i],2);
-    double d_hydrogrid_dz_ij=(total_contacts[i]*d_apolar_dz[i][j]-d_total_contacts_dz[i]*contacts_apolar[i])/pow(total_contacts[i],2);
+    double d_hydrogrid_dx_ij=(total_contacts[i]*d_apolar_dx[i][j]-d_contacts_total_dx[i][j]*contacts_apolar[i])/pow(total_contacts[i],2);
+    double d_hydrogrid_dy_ij=(total_contacts[i]*d_apolar_dy[i][j]-d_contacts_total_dy[i][j]*contacts_apolar[i])/pow(total_contacts[i],2);
+    double d_hydrogrid_dz_ij=(total_contacts[i]*d_apolar_dz[i][j]-d_contacts_total_dz[i][j]*contacts_apolar[i])/pow(total_contacts[i],2);
     d_hydroactivity_dx[j]+=activity[i]*d_hydrogrid_dx_ij+hydrophobicity_grid_i*d_activity_dx[i][j];
     d_hydroactivity_dy[j]+=activity[i]*d_hydrogrid_dy_ij+hydrophobicity_grid_i*d_activity_dy[i][j];
     d_hydroactivity_dz[j]+=activity[i]*d_hydrogrid_dz_ij+hydrophobicity_grid_i*d_activity_dz[i][j];

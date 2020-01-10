@@ -24,14 +24,10 @@ class activity
                            vector<vector<double>> d_mindist_dy,
                            vector<vector<double>> d_mindist_dz,
                            double CCmin, double deltaCC,
-                           vector<double> apolar_contacts,
-                           vector<vector<double>> d_apolar_dx,
-                           vector<vector<double>> d_apolar_dy,
-                           vector<vector<double>> d_apolar_dz,
-                           vector<double> polar_contacts,
-                           vector<vector<double>> d_polar_dx,
-                           vector<vector<double>> d_polar_dy,
-                           vector<vector<double>> d_polar_dz,
+                           vector<double> total_contacts,
+                           vector<vector<double>> d_contacts_total_dx,
+                           vector<vector<double>> d_contacts_total_dy,
+                           vector<vector<double>> d_contacts_total_dz,
                            double Emin, double deltaE);
 
 };

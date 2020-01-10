@@ -236,10 +236,8 @@ void jedi::calculate() {
   activity.compute_activities(min_dist.min_dist, 
                               min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
                               params.CC_mind,params.deltaCC,
-                              contacts_sum.contacts_apolar,
-                              contacts_sum.d_contacts_apolar_dx,contacts_sum.d_contacts_apolar_dy,contacts_sum.d_contacts_apolar_dz,
-                              contacts_sum.contacts_polar,
-                              contacts_sum.d_contacts_polar_dx,contacts_sum.d_contacts_polar_dy,contacts_sum.d_contacts_polar_dz,
+                              contacts_sum.contacts_total,
+                              contacts_sum.d_contacts_total_dx,contacts_sum.d_contacts_total_dy,contacts_sum.d_contacts_total_dz,
                               params.Emin, params.deltaE);
 
  
@@ -262,9 +260,10 @@ void jedi::calculate() {
                                         activity.d_sum_activity_dx,activity.d_sum_activity_dy,activity.d_sum_activity_dz);
   
   
-  //double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
-  double Jedi=hydrophobicity.Ha;
-  cout << "Ha 0 " << hydrophobicity.Ha << endl;
+  double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
+  //double Jedi=volume.volume;
+  //double Jedi=hydrophobicity.Ha;
+  cout << "Jedi = " << Jedi << endl;
 
   setValue(Jedi);
 
@@ -278,12 +277,15 @@ void jedi::calculate() {
   for (unsigned j=0; j<all_atoms.atoms_jedi.size();j++)
   {
     unsigned atom_idx=all_atoms.atoms_jedi[j];
-    dJedi_dx[atom_idx]=hydrophobicity.d_Ha_dx[j];
-    dJedi_dy[atom_idx]=hydrophobicity.d_Ha_dy[j];
-    dJedi_dz[atom_idx]=hydrophobicity.d_Ha_dz[j];
-    //dJedi_dx[atom_idx]=params.alpha*volume.d_volume_dx[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dx[j];
-    //Jedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dy[j];
-    //dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dz[j];
+    //dJedi_dx[atom_idx]=volume.d_volume_dx[j];
+    //dJedi_dy[atom_idx]=volume.d_volume_dy[j];
+    //dJedi_dz[atom_idx]=volume.d_volume_dz[j];
+    //dJedi_dx[atom_idx]=hydrophobicity.d_Ha_dx[j];
+    //dJedi_dy[atom_idx]=hydrophobicity.d_Ha_dy[j];
+    //dJedi_dz[atom_idx]=hydrophobicity.d_Ha_dz[j];
+    dJedi_dx[atom_idx]=params.alpha*volume.d_volume_dx[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dx[j];
+    dJedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dy[j];
+    dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dz[j];
   }
 
   #pragma omp parallel for
