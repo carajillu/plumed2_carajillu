@@ -12,8 +12,8 @@ hydrophobicity::hydrophobicity()
 
 void hydrophobicity::compute_hydrophobicity(vector<double> contacts_apolar,
                                             vector<vector<double>> d_apolar_dx,vector<vector<double>> d_apolar_dy,vector<vector<double>> d_apolar_dz,
-                                            vector<double> contacts_polar,
-                                            vector<vector<double>> d_polar_dx,vector<vector<double>> d_polar_dy,vector<vector<double>> d_polar_dz,
+                                            vector<double> total_contacts,
+                                            vector<vector<double>> d_contacts_total_dx,vector<vector<double>> d_contacts_total_dy,vector<vector<double>> d_contacts_total_dz,
                                             vector<double> activity,
                                             vector<vector<double>> d_activity_dx,vector<vector<double>> d_activity_dy,vector<vector<double>> d_activity_dz,
                                             double sum_activity,
@@ -31,25 +31,20 @@ void hydrophobicity::compute_hydrophobicity(vector<double> contacts_apolar,
   vector<double> d_hydroactivity_dz(size_protein,0);
   vector<double> d_hydroactivity_dy(size_protein,0);
 
+  vector<double> d_total_contacts_dx(size_protein,0);
+  vector<double> d_total_contacts_dy(size_protein,0);
+  vector<double> d_total_contacts_dz(size_protein,0);
+  
+
   for (unsigned i=0; i<size_grid;i++)
   {
-   double total_contacts=contacts_apolar[i]+contacts_polar[i];
-   /* Notice here that d_polar values are added to d_apolar. The trick here is that the derivative
-      of a polar contact with respect to an apolar atom will always be 0, and viceversa, so we can effectively
-      use the same vector for both polar and apolar.
-      This is using a local copy of the object so it should not affect the values of the 
-      original contacts object
-   */
-   transform(d_polar_dx[i].begin(),d_polar_dx[i].end(),d_apolar_dx[i].begin(),d_polar_dx[i].begin(),plus<double>());
-   transform(d_polar_dy[i].begin(),d_polar_dy[i].end(),d_apolar_dy[i].begin(),d_polar_dy[i].begin(),plus<double>());
-   transform(d_polar_dz[i].begin(),d_polar_dz[i].end(),d_apolar_dz[i].begin(),d_polar_dz[i].begin(),plus<double>());
-   double hydrophobicity_grid_i=contacts_apolar[i]/total_contacts;
+   double hydrophobicity_grid_i=contacts_apolar[i]/total_contacts[i];
    
    for(unsigned j=0;j<size_protein;j++)
    {
-    double d_hydrogrid_dx_ij=(contacts_polar[i]*d_apolar_dx[i][j]-contacts_apolar[i]*d_polar_dx[i][j])/pow(total_contacts,2);
-    double d_hydrogrid_dy_ij=(contacts_polar[i]*d_apolar_dy[i][j]-contacts_apolar[i]*d_polar_dy[i][j])/pow(total_contacts,2);
-    double d_hydrogrid_dz_ij=(contacts_polar[i]*d_apolar_dz[i][j]-contacts_apolar[i]*d_polar_dz[i][j])/pow(total_contacts,2);
+    double d_hydrogrid_dx_ij=(total_contacts[i]*d_apolar_dx[i][j]-d_total_contacts_dx[i]*contacts_apolar[i])/pow(total_contacts[i],2);
+    double d_hydrogrid_dy_ij=(total_contacts[i]*d_apolar_dy[i][j]-d_total_contacts_dy[i]*contacts_apolar[i])/pow(total_contacts[i],2);
+    double d_hydrogrid_dz_ij=(total_contacts[i]*d_apolar_dz[i][j]-d_total_contacts_dz[i]*contacts_apolar[i])/pow(total_contacts[i],2);
     d_hydroactivity_dx[j]+=activity[i]*d_hydrogrid_dx_ij+hydrophobicity_grid_i*d_activity_dx[i][j];
     d_hydroactivity_dy[j]+=activity[i]*d_hydrogrid_dy_ij+hydrophobicity_grid_i*d_activity_dy[i][j];
     d_hydroactivity_dz[j]+=activity[i]*d_hydrogrid_dz_ij+hydrophobicity_grid_i*d_activity_dz[i][j];

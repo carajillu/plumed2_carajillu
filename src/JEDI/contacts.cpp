@@ -86,6 +86,12 @@ void contacts_sum::compute_contacts_sum(vector<vector<double>> contacts_matrix,
  d_contacts_polar_dz=vector<vector<double>>(size_grid,d_contacts);
  d_contacts_polar_dy=vector<vector<double>>(size_grid,d_contacts);
 
+ contacts_total=vector<double>(size_grid,0);
+ d_contacts_total_dx=vector<vector<double>>(size_grid,d_contacts);
+ d_contacts_total_dz=vector<vector<double>>(size_grid,d_contacts);
+ d_contacts_total_dy=vector<vector<double>>(size_grid,d_contacts);
+ 
+
  for (unsigned i=0; i<size_grid;i++)
  {
    for(unsigned j=0;j<size_protein;j++)
@@ -109,6 +115,10 @@ void contacts_sum::compute_contacts_sum(vector<vector<double>> contacts_matrix,
       cout << "Unknown atom detected at position: " << j << ": " << atomnames[j] << ". Exiting." << endl;
       exit(0);
     }
+    contacts_total[i]+=contacts_apolar[i]+contacts_polar[i];
+    d_contacts_total_dx[i][j]=d_contacts_apolar_dx[i][j]+d_contacts_polar_dx[i][j];
+    d_contacts_total_dy[i][j]=d_contacts_apolar_dy[i][j]+d_contacts_polar_dy[i][j];
+    d_contacts_total_dz[i][j]=d_contacts_apolar_dz[i][j]+d_contacts_polar_dz[i][j];
    }
  }
  // Uncomment the following lines for testing

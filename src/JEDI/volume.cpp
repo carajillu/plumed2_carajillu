@@ -20,7 +20,6 @@ void Volume::compute_volume(double sum_activity, double volume_element,
   
   for (unsigned j=0;j<d_sum_activity_dx.size();j++)
   {
-    cout << "atom" << j << endl;
     d_volume_dx[j]*=volume_element;
     d_volume_dy[j]*=volume_element;
     d_volume_dz[j]*=volume_element;

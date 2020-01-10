@@ -189,25 +189,25 @@ void jedi::calculate() {
   Shrink grid and binding site so that only atoms/points that
   are within interacting distance from each other are kept
   */
-  cout << "Shrinking binding site" << endl;
+  
   all_atoms.positions.clear();
   for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
   {
     all_atoms.positions.push_back(getPosition(j));
   }
   all_atoms.select_atoms(all_atoms.positions,grid.positions,all_atoms.atomnames,params.r_max);
-  cout << "Kept " << all_atoms.positions.size() << " atoms" << endl;
+  
   //grid.select_atoms(grid.positions,all_atoms.positions,grid.atomnames,params.r_max); //NOT YET
   
   
   /////////////////////////////////////////////////
   //                JEDI score                   //
   /////////////////////////////////////////////////
-  cout << "calculating distance matrix" << endl;
+  
   distances distance_matrix;
   distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions);
 
-  cout << "mindist" << endl;
+  
   mindist min_dist;
   min_dist.compute_mindist(distance_matrix.r_matrix,
                           distance_matrix.dr_matrix_dx,
@@ -215,7 +215,7 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dz,
                           params.theta);
 
-  cout << "calculating contacts" << endl;                        
+                        
   contacts_Soff contacts;
   contacts.compute_contacts_S_off(distance_matrix.r_matrix,
                                   distance_matrix.dr_matrix_dx,
@@ -223,7 +223,7 @@ void jedi::calculate() {
                                   distance_matrix.dr_matrix_dz,
                                   params.r_hydro, params.deltar_hydro);
 
- cout << "calculating contacts_sum" << endl;
+ 
   contacts_sum contacts_sum;
   contacts_sum.compute_contacts_sum(contacts.contacts_matrix,
                                     contacts.d_contacts_dx,
@@ -231,7 +231,7 @@ void jedi::calculate() {
                                     contacts.d_contacts_dz,
                                     all_atoms.atomnames);
 
-  cout << "calculating activity" << endl;
+  
   activity activity;
   activity.compute_activities(min_dist.min_dist, 
                               min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
@@ -242,7 +242,7 @@ void jedi::calculate() {
                               contacts_sum.d_contacts_polar_dx,contacts_sum.d_contacts_polar_dy,contacts_sum.d_contacts_polar_dz,
                               params.Emin, params.deltaE);
 
- cout << "calculating volume" << endl;
+ 
   Volume volume;
   double volume_element=pow(params.resolution,3);
   volume.compute_volume(activity.sum_activity,volume_element,
@@ -250,24 +250,25 @@ void jedi::calculate() {
                         activity.d_sum_activity_dy,
                         activity.d_sum_activity_dz);
 
-  cout << "hydrophobicity" << endl;
+  
   hydrophobicity hydrophobicity;
   hydrophobicity.compute_hydrophobicity(contacts_sum.contacts_apolar,
                                         contacts_sum.d_contacts_apolar_dx,contacts_sum.d_contacts_apolar_dy,contacts_sum.d_contacts_apolar_dz,
-                                        contacts_sum.contacts_polar,
-                                        contacts_sum.d_contacts_polar_dx,contacts_sum.d_contacts_polar_dy,contacts_sum.d_contacts_polar_dz,
+                                        contacts_sum.contacts_total,
+                                        contacts_sum.d_contacts_total_dx,contacts_sum.d_contacts_total_dy,contacts_sum.d_contacts_total_dz,
                                         activity.activity_grid,
                                         activity.d_activity_dx,activity.d_activity_dy,activity.d_activity_dz,
                                         activity.sum_activity,
                                         activity.d_sum_activity_dx,activity.d_sum_activity_dy,activity.d_sum_activity_dz);
   
-  cout << "JEDI" << endl;
+  
   //double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
   double Jedi=hydrophobicity.Ha;
+  cout << "Ha 0 " << hydrophobicity.Ha << endl;
 
   setValue(Jedi);
 
-  cout << "DERIVATIVES" << endl;
+  
   vector<double> dJedi_dx(all_atoms.atomnumbers.size(),0);
   vector<double> dJedi_dy(all_atoms.atomnumbers.size(),0);
   vector<double> dJedi_dz(all_atoms.atomnumbers.size(),0);

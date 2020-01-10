@@ -36,6 +36,11 @@ class contacts_sum
  vector<vector<double>> d_contacts_polar_dy;
  vector<vector<double>> d_contacts_polar_dz;
 
+ vector<double> contacts_total;
+ vector<vector<double>> d_contacts_total_dx;
+ vector<vector<double>> d_contacts_total_dy;
+ vector<vector<double>> d_contacts_total_dz;
+
  void compute_contacts_sum(vector<vector<double>> contacts_matrix,
                            vector<vector<double>> d_contacts_dx,
                            vector<vector<double>> d_contacts_dy,
