@@ -112,7 +112,7 @@ void contacts_sum::compute_contacts_sum(vector<vector<double>> contacts_matrix,
    }
  }
  // Uncomment the following lines for testing
- 
+ /*
  for (unsigned i=0; i<size_grid; i++)
  {
    cout << "Apolar contacts sum grid point " << i << " = " << contacts_apolar[i] << endl;
@@ -129,5 +129,5 @@ void contacts_sum::compute_contacts_sum(vector<vector<double>> contacts_matrix,
      << d_contacts_polar_dx[i][j] << " " << d_contacts_polar_dy[i][j] << " " << d_contacts_polar_dz[i][j] << endl;
    }
  }
- 
+ */
 }

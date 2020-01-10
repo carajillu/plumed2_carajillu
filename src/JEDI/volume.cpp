@@ -8,28 +8,23 @@ Volume::Volume()
  volume=0;
 }
 
-void Volume::compute_volume(Activity activity, double volume_element)
+void Volume::compute_volume(double sum_activity, double volume_element,
+                            vector<double> d_sum_activity_dx, vector<double> d_sum_activity_dy, vector<double> d_sum_activity_dz)
 {
-  //Ugly way to fill vectors with zeros
-  d_volume_dx=vector<double>(activity.d_activity_dx[0].size(),0);
-  d_volume_dy=vector<double>(activity.d_activity_dx[0].size(),0);
-  d_volume_dz=vector<double>(activity.d_activity_dx[0].size(),0);
-
-  //computing volume
-  #pragma omp parallel for reduction(+:volume)
-  for (unsigned i=0; i<activity.activity.size();i++)
-  {
-      volume+=activity.activity[i]*volume_element;
-      for (unsigned j=0; j<activity.d_activity_dx[i].size();j++)
-      {
-        d_volume_dx[j]+=activity.d_activity_dx[i][j]*volume_element;
-        d_volume_dy[j]+=activity.d_activity_dy[i][j]*volume_element;
-        d_volume_dz[j]+=activity.d_activity_dz[i][j]*volume_element;
-      }
-  }
-
   
-
+  d_volume_dx=d_sum_activity_dx;
+  d_volume_dy=d_sum_activity_dy;
+  d_volume_dz=d_sum_activity_dz;
+  
+  volume=volume_element*sum_activity;
+  
+  for (unsigned j=0;j<d_sum_activity_dx.size();j++)
+  {
+    cout << "atom" << j << endl;
+    d_volume_dx[j]*=volume_element;
+    d_volume_dy[j]*=volume_element;
+    d_volume_dz[j]*=volume_element;
+  }
   //Uncomment the following lines for testing
   /*
   cout << "Volume: " << volume << endl;

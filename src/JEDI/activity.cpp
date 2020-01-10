@@ -37,6 +37,10 @@ void activity::compute_activities(vector<double> mindist,
   d_activity_dy=vector<vector<double>>(mindist.size(),d_activity_i);
   d_activity_dz=vector<vector<double>>(mindist.size(),d_activity_i);
   
+  sum_activity=0;
+  d_sum_activity_dx=vector<double>(d_mindist_dx[0].size(),0);
+  d_sum_activity_dz=vector<double>(d_mindist_dx[0].size(),0);
+  d_sum_activity_dy=vector<double>(d_mindist_dx[0].size(),0);
   
   //Calculate close_contact, depth and then activity and its derivatives
   //#pragma omp parallel for
@@ -45,32 +49,38 @@ void activity::compute_activities(vector<double> mindist,
    S_on close_contact_i(mindist[i],CC_min,deltaCC,d_mindist_dx[i],d_mindist_dy[i],d_mindist_dz[i]);
    close_contact_i.compute_S_on();
 
-   /* Notice here that d_apolar values are added to d_polar. 
+   /* Notice here that d_polar values are added to d_apolar. 
       This is using a local copy of the object so it should 
       not affect the values of the original contacts object
    */
    double total_contacts=apolar_contacts[i]+polar_contacts[i];
-   transform(d_apolar_dx[i].begin(),d_apolar_dx[i].end(),d_polar_dx[i].begin(),d_apolar_dx[i].begin(),plus<double>());
-   transform(d_apolar_dy[i].begin(),d_apolar_dy[i].end(),d_polar_dy[i].begin(),d_apolar_dy[i].begin(),plus<double>());
-   transform(d_apolar_dz[i].begin(),d_apolar_dz[i].end(),d_polar_dz[i].begin(),d_apolar_dz[i].begin(),plus<double>());
+   transform(d_polar_dx[i].begin(),d_polar_dx[i].end(),d_apolar_dx[i].begin(),d_polar_dx[i].begin(),plus<double>());
+   transform(d_polar_dy[i].begin(),d_polar_dy[i].end(),d_apolar_dy[i].begin(),d_polar_dy[i].begin(),plus<double>());
+   transform(d_polar_dz[i].begin(),d_polar_dz[i].end(),d_apolar_dz[i].begin(),d_polar_dz[i].begin(),plus<double>());
    S_on depth_i(total_contacts,Emin,deltaE,d_polar_dx[i],d_polar_dy[i],d_polar_dz[i]);
    depth_i.compute_S_on();
 
    activity_grid[i]=close_contact_i.S_on_value*depth_i.S_on_value;
+   sum_activity+=activity_grid[i];
    for (unsigned j=0; j<d_activity_dx[i].size(); j++)
      {
        d_activity_dx[i][j]=depth_i.S_on_value*close_contact_i.d_Son_dx[j]+
                            close_contact_i.S_on_value*depth_i.d_Son_dx[j];
+       d_sum_activity_dx[j]+=d_activity_dx[i][j];
+
        d_activity_dy[i][j]=depth_i.S_on_value*close_contact_i.d_Son_dy[j]+
                            close_contact_i.S_on_value*depth_i.d_Son_dy[j];
+       d_sum_activity_dy[j]+=d_activity_dy[i][j];
+
        d_activity_dz[i][j]=depth_i.S_on_value*close_contact_i.d_Son_dz[j]+
                            close_contact_i.S_on_value*depth_i.d_Son_dz[j];
+       d_sum_activity_dz[j]+=d_activity_dz[i][j];                    
      }
-
   }
 
+
   //Uncomment the following lines for testing
-  
+  /*
   for (unsigned i=0; i<activity_grid.size();i++)
   {
     cout << "Activity point " << i << " = " << activity_grid[i] << endl;
@@ -81,5 +91,5 @@ void activity::compute_activities(vector<double> mindist,
                                                                << d_activity_dz[i][j] << " " << endl;
     }
   }
-  
+  */
 }

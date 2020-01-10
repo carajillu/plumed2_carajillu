@@ -15,6 +15,10 @@ class activity
    vector<vector<double>> d_activity_dx;
    vector<vector<double>> d_activity_dy;
    vector<vector<double>> d_activity_dz;
+   double sum_activity;
+   vector<double> d_sum_activity_dx;
+   vector<double> d_sum_activity_dy;
+   vector<double> d_sum_activity_dz;
    void compute_activities(vector<double> mindist, 
                            vector<vector<double>> d_mindist_dx,
                            vector<vector<double>> d_mindist_dy,

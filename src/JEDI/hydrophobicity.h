@@ -8,26 +8,22 @@ using namespace std;
 #ifndef hydrophobicity_h_
 #define hydrophobicity_h_
 
-class Hydrophobicity
+class hydrophobicity
 {
- private:
-   vector<vector<double>> contacts;
-   vector<vector<double>> d_contacts_dx;
-   vector<vector<double>> d_contacts_dy;
-   vector<vector<double>> d_contacts_dz;
-   void compute_contacts(distances r_matrix, double r_hydro, double deltar_hydro);
-   vector<double> hydrophobicity_grid;
-   vector<vector<double>> d_hydrogrid_dx;
-   vector<vector<double>> d_hydrogrid_dy;
-   vector<vector<double>> d_hydrogrid_dz;
-   void compute_hydrophobicity_grid(vector<string> atomnames, distances r_matrix, double r_hydro, double deltar_hydro);
  public:
-   Hydrophobicity();
+   hydrophobicity();
    double Ha;
    vector<double> d_Ha_dx;
    vector<double> d_Ha_dy;
    vector<double> d_Ha_dz;
-   void compute_hydrophobicity(vector<string> atomnames, distances r_matrix, Activity activity, double r_hydro, double deltar_hydro);
+   void compute_hydrophobicity(vector<double> contacts_apolar,
+                               vector<vector<double>> d_apolar_dx,vector<vector<double>> d_apolar_dy,vector<vector<double>> d_apolar_dz,
+                               vector<double> contacts_polar,
+                               vector<vector<double>> d_polar_dx,vector<vector<double>> d_polar_dy,vector<vector<double>> d_polar_dz,
+                               vector<double> activity,
+                               vector<vector<double>> d_activity_dx,vector<vector<double>> d_activity_dy,vector<vector<double>> d_activity_dz,
+                               double sum_activity,
+                               vector<double> d_sum_activity_dx, vector<double> d_sum_activity_dy,vector<double> d_sum_activity_dz);
    
    
 

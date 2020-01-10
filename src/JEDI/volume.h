@@ -13,6 +13,7 @@ class Volume
   vector<double> d_volume_dx;
   vector<double> d_volume_dy;
   vector<double> d_volume_dz;
-  void compute_volume(Activity activity, double volume_element);
+  void compute_volume(double sum_activity, double volume_element,
+                      vector<double> d_sum_activity_dx, vector<double> d_sum_activity_dy, vector<double> d_sum_activity_dz);
 };
 #endif
