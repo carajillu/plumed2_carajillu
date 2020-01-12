@@ -32,9 +32,19 @@ void distances::compute_distance_matrix(vector<PLMD::Vector> protein, vector<PLM
       for (unsigned j=0; j<protein.size(); j++)
       {
           r_matrix[i][j]=delta(protein[j],grid[i]).modulo();
-          dr_matrix_dx[i][j]=(protein[j][0]-grid[i][0])/r_matrix[i][j];
-          dr_matrix_dy[i][j]=(protein[j][1]-grid[i][1])/r_matrix[i][j];
-          dr_matrix_dz[i][j]=(protein[j][2]-grid[i][2])/r_matrix[i][j];
+          if (r_matrix[i][j]<0.0000001)
+          {
+            r_matrix[i][j]=0.0000001;
+            dr_matrix_dx[i][j]=0;
+            dr_matrix_dy[i][j]=0;
+            dr_matrix_dz[i][j]=0;
+          }
+          else
+          {
+           dr_matrix_dx[i][j]=(protein[j][0]-grid[i][0])/r_matrix[i][j];
+           dr_matrix_dy[i][j]=(protein[j][1]-grid[i][1])/r_matrix[i][j];
+           dr_matrix_dz[i][j]=(protein[j][2]-grid[i][2])/r_matrix[i][j]; 
+          }
       }
   }
   
