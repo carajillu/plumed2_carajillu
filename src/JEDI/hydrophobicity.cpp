@@ -19,7 +19,7 @@ void hydrophobicity::compute_hydrophobicity(vector<double> contacts_apolar,
                                             double sum_activity,
                                             vector<double> d_sum_activity_dx, vector<double> d_sum_activity_dy,vector<double> d_sum_activity_dz)
 {
-  cout << "Entering hydrophobicity"<< endl;
+  //cout << "Entering hydrophobicity"<< endl;
   unsigned size_grid=contacts_apolar.size();
   unsigned size_protein=d_apolar_dx[0].size();
 
@@ -34,7 +34,7 @@ void hydrophobicity::compute_hydrophobicity(vector<double> contacts_apolar,
   
   if (sum_activity==0) 
   {
-    cout << "Exiting hydrophobicity with sum_activity=0"<< endl;
+    //cout << "Exiting hydrophobicity with sum_activity=0"<< endl;
     return; //avoids NaN
   }
 
@@ -67,7 +67,7 @@ void hydrophobicity::compute_hydrophobicity(vector<double> contacts_apolar,
     d_Ha_dz[j]=(sum_activity*d_hydroactivity_dz[j]-Ha*d_sum_activity_dz[j])/pow(sum_activity,2);
   }
   Ha/=sum_activity; //Normalise Ha
-  cout << "Exiting hydrophobicity"<< endl;
+  //cout << "Exiting hydrophobicity"<< endl;
 
  // Uncomment the following lines for testing
  /*
