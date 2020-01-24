@@ -35,8 +35,8 @@ void contacts_Soff::compute_contacts_S_off(vector<vector<double>> r_matrix,
      vector<double> d_contactsij_dx(1,dr_matrix_dx[i][j]);
      vector<double> d_contactsij_dy(1,dr_matrix_dy[i][j]);
      vector<double> d_contactsij_dz(1,dr_matrix_dz[i][j]);
-     S_off contacts_ij(r_matrix[i][j],v0,delta_v,d_contactsij_dx,d_contactsij_dy,d_contactsij_dz);
-     contacts_ij.compute_S_off();
+     S_off contacts_ij;
+     contacts_ij.compute_S_off(r_matrix[i][j],v0,delta_v,d_contactsij_dx,d_contactsij_dy,d_contactsij_dz);
      contacts_matrix[i][j]=contacts_ij.S_off_value;
      d_contacts_dx[i][j]=contacts_ij.d_Soff_dx[0];
      d_contacts_dy[i][j]=contacts_ij.d_Soff_dy[0];

@@ -42,11 +42,11 @@ void activity::compute_activities(vector<double> mindist,
   //#pragma omp parallel for
   for (unsigned i=0; i<mindist.size();i++)
   {
-   S_on close_contact_i(mindist[i],CC_min,deltaCC,d_mindist_dx[i],d_mindist_dy[i],d_mindist_dz[i]);
-   close_contact_i.compute_S_on();
+   S_on close_contact_i;
+   close_contact_i.compute_S_on(mindist[i],CC_min,deltaCC,d_mindist_dx[i],d_mindist_dy[i],d_mindist_dz[i]);
 
-   S_on depth_i(total_contacts[i],Emin,deltaE,d_contacts_total_dx[i],d_contacts_total_dy[i],d_contacts_total_dz[i]);
-   depth_i.compute_S_on();
+   S_on depth_i;
+   depth_i.compute_S_on(total_contacts[i],Emin,deltaE,d_contacts_total_dx[i],d_contacts_total_dy[i],d_contacts_total_dz[i]);
 
    activity_grid[i]=close_contact_i.S_on_value*depth_i.S_on_value;
    sum_activity+=activity_grid[i];
