@@ -19,6 +19,6 @@ class clustering
  public:
   clustering();
   vector<vector<unsigned>> clusters;
-  void cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours);
+  void cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours,double GP_max);
 };
 #endif

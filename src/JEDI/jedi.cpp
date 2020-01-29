@@ -58,6 +58,7 @@
 #include "activity.h"
 #include "volume.h"
 #include "hydrophobicity.h"
+#include "clustering_laio.h"
 
 
 #include "kabsch.h" // kabsch algorithm for grid update
@@ -246,6 +247,8 @@ void jedi::calculate() {
                               contacts_sum.contacts_total,
                               contacts_sum.d_contacts_total_dx,contacts_sum.d_contacts_total_dy,contacts_sum.d_contacts_total_dz,
                               params.Emin, params.deltaE);
+  clustering clusters;
+  clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max);
 
  
   Volume volume;

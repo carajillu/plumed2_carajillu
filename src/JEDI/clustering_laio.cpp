@@ -1,5 +1,6 @@
 #include "clustering_laio.h"
 #include <algorithm>
+#include <iostream>
 using namespace std;
 
 clustering::clustering()
@@ -12,54 +13,86 @@ bool clustering::sort_density(const vector5d a, const vector5d b)
   return a.density>b.density;
 }
 
-void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours)
+void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours, double GP_max)
 {
   unsigned size_grid = activity.size();
-  vector<vector5d> grid_5d(grid_size);
+  vector<double> density(size_grid,0);
+  vector<double> delta(size_grid,9999999); //not pretty! any way to use infinite?
+  vector<int> nnhd(size_grid,-1);
+  vector<int> cluster_assign(size_grid,-1);
+  vector<unsigned> clusters_l;
+  vector<pair<double,unsigned>> density_pair(size_grid,make_pair(0,0));
 
-  #pragma omp parallel for
-  for (unsigned i=0; i<size_grid; i++)
+  #pragma omp parallel
   {
-    if (activity[i]==0) continue;
-
-    vector5d p;
-    p.idx=i;
-    p.density=0;
-    p.nnhd=-1;
-    p.delta=-1;
-    p.cluster=-1;
-
-    for (unsigned k=0; k<neighbours[i].size();k++)
+    #pragma omp for
+    for (unsigned i=0; i<size_grid;i++)
     {
-     p.density+=activity[neighbours[i][k]];
+      double rho=0;
+      for (unsigned k=0; k<neighbours[i].size();k++)
+      {
+        unsigned neighbour_idx=neighbours[i][k];
+        if (activity[neighbour_idx]==0) continue;
+        rho++;
+      }
+      density[i]=rho;
+      density_pair[i]=make_pair(rho,i);
     }
-    grid_5d[i]=p;
-  }
-   
-  sort(grid_5d.begin(),grid_5d.end(),sort_density);
-  
-  unsigned cluster_id=0
-  grid_5d[0].nnhd=cluster
-  grid_5d[0].delta=99999999; // This is the point with the highest density
-  grid_5d[0].cluster=0;
-  for (unsigned i=1; i<size_grid; i++)
-  {
-   unsigned idx_i=grid_5d[i].idx;
-   unsigned idx_k=grid_5d[i-1].idx;
-   grid_5d[i].nnhd=idx_k;
-   grid_5d[i].delta=r_matrix[idx_i][idx_k];
-   if (grid_5d[i].delta>GPmax)
-   {
-    cluster_id++
-    grid_5d[i].cluster=cluster_id
-   }
-   else
-   {
-    grid_5d[i].cluster=grid_5d[i-1].cluster;
-   }
-  }
+    #pragma omp barrier
+    #pragma omp single
+    {
+     sort(density_pair.rbegin(),density_pair.rend());
+     for (unsigned i=0; i<size_grid; i++)
+     {
+       cout << density_pair[i].first << " " << density_pair[i].second << endl;
+     }
+    }
+    #pragma omp barrier
 
-  unsigned nclust=cluster_id+1;
-  vector<unsigned> cluster_l;
-  clusters=vector<vector<unsigned>>()
+    #pragma omp single
+    for(unsigned i=0; i<size_grid;i++)
+    {
+      for (unsigned k=0; k<size_grid; k++)
+      {
+        if (i==k) continue;
+        if ((density[k]>density[i]) and (r_matrix[i][k]<delta[i]))
+        {
+          delta[i]=r_matrix[i][k];
+          nnhd[i]=k;
+        }
+      }
+    }
+    #pragma omp barrier
+
+    #pragma omp single
+    {
+      for (unsigned i=0; i<size_grid;i++)
+      {
+       unsigned grid_idx=density_pair[i].second;
+       cout << "processing point " << grid_idx << " with delta = " << delta[grid_idx] << endl;
+       if (delta[grid_idx]>GP_max) //If there is no neighbour with a higher density, create a new cluster
+       {
+        clusters.push_back(clusters_l);
+        clusters[clusters.size()-1].push_back(grid_idx);
+        cluster_assign[grid_idx]=clusters.size()-1;
+       }
+       else
+       {
+        cluster_assign[grid_idx]=cluster_assign[nnhd[grid_idx]];
+        clusters[cluster_assign[grid_idx]].push_back(grid_idx);
+       }
+      }
+    }
+
+  }
+ 
+  int count=0;
+  for (unsigned i=0; i<clusters.size();i++)
+  {
+    cout << "Cluster " << i << " Has " << clusters[i].size() << " elements" << endl;
+    count+=clusters[i].size();
+  }
+  cout << "Total points clustered: " << count << endl;
+  cout << "Total number of grid points " << size_grid << endl;
+  exit(0);
 }
