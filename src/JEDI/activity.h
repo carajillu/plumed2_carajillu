@@ -29,6 +29,7 @@ class activity
                            vector<vector<double>> d_contacts_total_dy,
                            vector<vector<double>> d_contacts_total_dz,
                            double Emin, double deltaE);
+  void filter_activities();
 
 };
 

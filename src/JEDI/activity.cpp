@@ -81,3 +81,23 @@ void activity::compute_activities(vector<double> mindist,
   }
   */
 }
+
+void activity::filter_activities()
+{
+   vector<double> activity_grid_filtered;
+   vector<vector<double>> d_activity_dx_filtered;
+   vector<vector<double>> d_activity_dy_filtered;
+   vector<vector<double>> d_activity_dz_filtered;
+   for (unsigned i=0; i<activity_grid.size();i++)
+   {
+     if (activity_grid[i]==0) continue;
+     activity_grid_filtered.push_back(activity_grid[i]);
+     d_activity_dx_filtered.push_back(d_activity_dx[i]);
+     d_activity_dy_filtered.push_back(d_activity_dy[i]);
+     d_activity_dz_filtered.push_back(d_activity_dz[i]);
+   }
+   activity_grid=activity_grid_filtered;
+   d_activity_dx=d_activity_dx_filtered;
+   d_activity_dy=d_activity_dy_filtered;
+   d_activity_dz=d_activity_dz_filtered;
+}
