@@ -145,6 +145,13 @@ jedi::jedi(const ActionOptions&ao):
   parse("GRID",pdb_grid);
   grid.readAtoms(pdb_grid);
   cout << "Loaded file " << pdb_grid << " and found " << grid.atomnumbers.size() << " elements." << endl;
+  grid.compute_neighbours(grid.positions,params.GP_max);
+  int max_neighbours=0;
+  for (unsigned i=0; i<grid.positions.size();i++)
+  {
+   if (grid.neighbours[i].size()>max_neighbours) max_neighbours=grid.neighbours[i].size();
+  }
+  cout << "Maximum number of neighbours found: " << max_neighbours << endl;
   //cout << "Moving center of geometry towards origin (0,0,0)" << endl;
   //grid.center_atoms(grid.positions,all_atoms.cog0);
   //cout << "Center of geometry went from: " << grid.cog0[0] << "," << grid.cog0[1] << "," << grid.cog0[2] << " to " << \

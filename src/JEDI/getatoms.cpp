@@ -137,4 +137,26 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_
      positions=positions_new;
    }
 
-   
+   void getatoms::compute_neighbours(vector<PLMD::Vector> &positions, double GP_max)
+   {
+     vector<unsigned> neighbours_i;
+     neighbours=vector<vector<unsigned>>(positions.size(),neighbours_i);
+     vector<double> r_row;
+     r_matrix=vector<vector<double>>(positions.size(),r_row);
+
+     for (unsigned i=0; i<positions.size();i++)
+     {
+       //cout << "i=" << i << endl;
+       for (unsigned k=0; k<positions.size();k++)
+       {
+         //cout << "k=" << k << endl;
+         double r=delta(positions[k],positions[i]).modulo();
+         r_matrix[i].push_back(r);
+         if ((r<=GP_max) and (k!=i))
+         {
+          neighbours[i].push_back(k);
+          neighbours[k].push_back(i);
+         }
+       }
+     }
+   }

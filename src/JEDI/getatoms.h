@@ -22,6 +22,7 @@ class getatoms
     void readAtoms(string pdb_file);
     void center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_in);
     void select_atoms(vector<PLMD::Vector> &positions, vector<PLMD::Vector> grid_positions, vector<string> &atomnames, double r_max);
+    void compute_neighbours(vector<PLMD::Vector> &positions, double GP_max);
     vector<PLMD::AtomNumber> atomnumbers;
     vector<PLMD::Vector> positions;
     vector<string> atomnames;
@@ -29,6 +30,9 @@ class getatoms
     vector<double> cog;
     vector<double> cog0;
     vector<unsigned> atoms_jedi;
+    //This is in principle only for the grid
+    vector<vector<unsigned>> neighbours;
+    vector<vector<double>> r_matrix;
 };
 
 #endif
