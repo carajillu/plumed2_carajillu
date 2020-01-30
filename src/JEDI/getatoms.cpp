@@ -160,3 +160,21 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_
        }
      }
    }
+
+   void getatoms::print_atoms(string base)
+   {
+      string filename = base;
+      stringstream num;
+      filename.append("-step-");
+      filename.append(".xyz");
+      ofstream wfile;
+      wfile.open(filename.c_str());
+      wfile << positions.size() << endl;
+      wfile << base << endl;
+      for (unsigned j=0; j<positions.size();j++)
+        {
+          wfile << atomnames[j][0] << " " << std::fixed << std::setprecision(5) << positions[j][0]*10 << " " << positions[j][1]*10 << " " << positions[j][2]*10 << endl;
+       }
+      wfile.close();
+     
+   }

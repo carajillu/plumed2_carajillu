@@ -1,6 +1,8 @@
 #include "clustering_laio.h"
 #include <algorithm>
-#include <iostream>
+#include <iostream> 
+#include <iomanip> // std::setprecision
+#include <fstream> // std::ofstream     
 using namespace std;
 
 clustering::clustering()
@@ -8,84 +10,111 @@ clustering::clustering()
 
 }
 
-bool clustering::sort_density(const vector5d a, const vector5d b)
+bool clustering::sort_grid(const laio &a, const laio &b)
 {
-  return a.density>b.density;
-}
+  if (a.density!=b.density)
+    return a.density>b.density;
+  else if (a.activity!=b.activity)
+    return a.activity>b.activity;
+  else 
+    return a.idx > b.idx;
+} 
 
-void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours, double GP_max)
+void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours, double GP_max, double grid_resolution)
 {
-  unsigned size_grid = activity.size();
-  vector<double> density(size_grid,0);
-  vector<double> delta(size_grid,9999999); //not pretty! any way to use infinite?
-  vector<int> nnhd(size_grid,-1);
-  vector<int> cluster_assign(size_grid,-1);
-  vector<unsigned> clusters_l;
-  vector<pair<double,unsigned>> density_pair(size_grid,make_pair(0,0));
-
-  #pragma omp parallel
+  int clust_id=0;
+  #pragma omp parallel shared(grid_stats, clust_id)
   {
+    vector<laio> grid_stats_private;
+    // Build the vector with all the data dor each grid point and calculate all densities
     #pragma omp for
-    for (unsigned i=0; i<size_grid;i++)
+    for (unsigned i=0; i<activity.size();i++)
     {
-      double rho=0;
-      for (unsigned k=0; k<neighbours[i].size();k++)
-      {
-        unsigned neighbour_idx=neighbours[i][k];
-        if (activity[neighbour_idx]==0) continue;
-        rho++;
-      }
-      density[i]=rho;
-      density_pair[i]=make_pair(rho,i);
-    }
-    #pragma omp barrier
-    #pragma omp single
-    {
-     sort(density_pair.rbegin(),density_pair.rend());
-     for (unsigned i=0; i<size_grid; i++)
+     if (activity[i]==0) continue;
+     laio point_stats;
+     point_stats.idx=i;
+     point_stats.activity=activity[i];
+     point_stats.density=0;
+     point_stats.nnhd=-1;
+     point_stats.delta=9999999;
+     point_stats.cluster=-1;
+     for(unsigned k=0; k<neighbours[i].size();k++)
      {
-       cout << density_pair[i].first << " " << density_pair[i].second << endl;
+       if (activity[k]>0) point_stats.density++;
      }
+     grid_stats_private.push_back(point_stats);
+    }
+    #pragma omp critical
+    {
+     grid_stats.insert(grid_stats.end(),grid_stats_private.begin(),grid_stats_private.end()); 
     }
     #pragma omp barrier
 
+    //Sort the vector<laio> using the criteria in clustering::sort_grid
     #pragma omp single
-    for(unsigned i=0; i<size_grid;i++)
     {
-      for (unsigned k=0; k<size_grid; k++)
-      {
-        if (i==k) continue;
-        if ((density[k]>density[i]) and (r_matrix[i][k]<delta[i]))
-        {
-          delta[i]=r_matrix[i][k];
-          nnhd[i]=k;
-        }
-      }
+      sort(grid_stats.begin(),grid_stats.end(),sort_grid);
     }
     #pragma omp barrier
 
-    #pragma omp single
+    //Calculate delta for each grid point
+    #pragma omp for
+    for (unsigned i=1; i<grid_stats.size();i++)
     {
-      for (unsigned i=0; i<size_grid;i++)
+      unsigned idx_i=grid_stats[i].idx;
+      
+      //Calculate delta
+      for(unsigned k=0; k<i; k++)
       {
-       unsigned grid_idx=density_pair[i].second;
-       cout << "processing point " << grid_idx << " with delta = " << delta[grid_idx] << endl;
-       if (delta[grid_idx]>GP_max) //If there is no neighbour with a higher density, create a new cluster
+       unsigned idx_k=grid_stats[k].idx;
+       if (r_matrix[idx_i][idx_k]==grid_resolution) // that speeds up the search
        {
-        clusters.push_back(clusters_l);
-        clusters[clusters.size()-1].push_back(grid_idx);
-        cluster_assign[grid_idx]=clusters.size()-1;
+        grid_stats[i].delta=grid_resolution;
+        grid_stats[i].nnhd=k; //Note that here we get the position in the vector<laio>, not the actual index of the grid point
+        break;
        }
-       else
+       else if (r_matrix[idx_i][idx_k]<grid_stats[i].delta)
        {
-        cluster_assign[grid_idx]=cluster_assign[nnhd[grid_idx]];
-        clusters[cluster_assign[grid_idx]].push_back(grid_idx);
+        grid_stats[i].delta=r_matrix[idx_i][idx_k];
+        grid_stats[i].nnhd=k;
        }
       }
     }
-
   }
- 
+
+  //Assign points to clusters (note that's out of the parallel region!)
+  
+  //The point with the highest density always is a cluster center
+    
+  grid_stats[0].cluster=0;
+  vector<unsigned> cluster(1,grid_stats[0].idx);
+  clusters.push_back(cluster);
+
+  for (unsigned i=1; i<grid_stats.size();i++)
+  {
+    unsigned idx_i=grid_stats[i].idx;
+    //Assign cluster centers
+    if (grid_stats[i].delta > GP_max)
+      {
+        clust_id++;  
+        grid_stats[i].cluster=clust_id;
+        vector<unsigned> cluster(1,idx_i);
+        clusters.push_back(cluster);
+      }   
+    else
+      {
+        int nnhd=grid_stats[i].nnhd;
+        grid_stats[i].cluster=grid_stats[nnhd].cluster;
+        clusters[grid_stats[i].cluster].push_back(idx_i);
+      }
+      
+  }
+/*
+  for (unsigned i=0; i<grid_stats.size();i++)
+  {
+    cout << grid_stats[i].idx << " " << grid_stats[i].activity << " " << grid_stats[i].density << " " << grid_stats[i].delta << " " << grid_stats[i].nnhd << " " << grid_stats[i].cluster << endl;
+  }
+  
   int count=0;
   for (unsigned i=0; i<clusters.size();i++)
   {
@@ -93,6 +122,35 @@ void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_
     count+=clusters[i].size();
   }
   cout << "Total points clustered: " << count << endl;
-  cout << "Total number of grid points " << size_grid << endl;
+  cout << "Total number of grid points " << activity.size() << endl;
   exit(0);
+  */
+}
+
+void clustering::print_clusters(vector<PLMD::Vector> grid)
+{
+ for (unsigned k=0; k<clusters.size();k++)
+     {
+        string filename = "cluster-";
+        stringstream num;
+        num << k;
+        string number = num.str();
+        //stringstream out;
+        //out << step;
+        //string outer=out.str();
+        filename.append(number);
+        filename.append("-step-");
+        //filename.append(outer); 
+        filename.append(".xyz");
+        ofstream wfile;
+        wfile.open(filename.c_str());
+        wfile << clusters[k].size() << endl;
+        //wfile << jedi_clusters[k] << endl;
+        wfile << "Cluster " << k << endl;
+        for (unsigned i=0; i<clusters[k].size();i++)
+          {
+            wfile << "H " << std::fixed << std::setprecision(5) << grid[clusters[k][i]][0]*10 << " " << grid[clusters[k][i]][1]*10 << " " << grid[clusters[k][i]][2]*10 << endl;
+          }
+        wfile.close();
+     }
 }

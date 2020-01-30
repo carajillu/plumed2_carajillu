@@ -7,18 +7,22 @@ using namespace std;
 class clustering
 {
  private:
-  struct vector5d
+  struct laio
   {
-   unsigned idx;
    double density;
+   unsigned idx;
+   double activity;
    int nnhd;
    double delta;
    int cluster;
   };
-  bool sort_density(const vector5d a, const vector5d b);
+  static bool sort_grid(const laio &a, const laio &b);
+  
  public:
   clustering();
+  vector<laio> grid_stats;
   vector<vector<unsigned>> clusters;
-  void cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours,double GP_max);
+  void cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours,double GP_max, double grid_resolution);
+  void print_clusters(vector<PLMD::Vector> grid);
 };
 #endif

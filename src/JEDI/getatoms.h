@@ -23,6 +23,7 @@ class getatoms
     void center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_in);
     void select_atoms(vector<PLMD::Vector> &positions, vector<PLMD::Vector> grid_positions, vector<string> &atomnames, double r_max);
     void compute_neighbours(vector<PLMD::Vector> &positions, double GP_max);
+    void print_atoms(string base);
     vector<PLMD::AtomNumber> atomnumbers;
     vector<PLMD::Vector> positions;
     vector<string> atomnames;

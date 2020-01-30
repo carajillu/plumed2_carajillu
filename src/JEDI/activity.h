@@ -9,6 +9,9 @@ using namespace std;
 
 class activity
 {
+ private:
+   vector<double> S_on_mindist;
+   vector<double> S_on_contacts;
  public:
    activity();
    vector<double> activity_grid;
@@ -19,6 +22,7 @@ class activity
    vector<double> d_sum_activity_dx;
    vector<double> d_sum_activity_dy;
    vector<double> d_sum_activity_dz;
+   vector<unsigned> active_indices;
    void compute_activities(vector<double> mindist, 
                            vector<vector<double>> d_mindist_dx,
                            vector<vector<double>> d_mindist_dy,
@@ -30,6 +34,7 @@ class activity
                            vector<vector<double>> d_contacts_total_dz,
                            double Emin, double deltaE);
   void filter_activities();
+  void print_activities();
 
 };
 
