@@ -46,5 +46,6 @@ class contacts_sum
                            vector<vector<double>> d_contacts_dy,
                            vector<vector<double>> d_contacts_dz,
                            vector<string> atomnames);
+void filter_contacts(vector<unsigned> cluster);
 };
 #endif

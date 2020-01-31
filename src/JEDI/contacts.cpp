@@ -141,3 +141,45 @@ void contacts_sum::compute_contacts_sum(vector<vector<double>> contacts_matrix,
  }
  */
 }
+
+void contacts_sum::filter_contacts(vector<unsigned> cluster)
+{
+  vector<double> d_contact_i(d_contacts_apolar_dx[0].size(),0);
+  
+  vector<double> contacts_apolar_filtered(cluster.size(),0);
+  vector<vector<double>> d_contacts_apolar_filtered_dx(cluster.size(),d_contact_i);
+  vector<vector<double>> d_contacts_apolar_filtered_dy(cluster.size(),d_contact_i);
+  vector<vector<double>> d_contacts_apolar_filtered_dz(cluster.size(),d_contact_i);
+
+  vector<double> contacts_total_filtered(cluster.size(),0);
+  vector<vector<double>> d_contacts_total_filtered_dx(cluster.size(),d_contact_i);
+  vector<vector<double>> d_contacts_total_filtered_dy(cluster.size(),d_contact_i);
+  vector<vector<double>> d_contacts_total_filtered_dz(cluster.size(),d_contact_i);
+
+  for (unsigned i=0; i<cluster.size();i++)
+  {
+    unsigned idx=cluster[i];
+    contacts_apolar_filtered[i]=contacts_apolar[idx];
+    contacts_total_filtered[i]=contacts_total[idx];
+    for (unsigned j=0; j<d_contacts_apolar_dx[0].size();j++)
+    {
+     d_contacts_apolar_filtered_dx[i][j]=d_contacts_apolar_dx[idx][j];
+     d_contacts_apolar_filtered_dy[i][j]=d_contacts_apolar_dy[idx][j];
+     d_contacts_apolar_filtered_dz[i][j]=d_contacts_apolar_dz[idx][j];
+
+     d_contacts_total_filtered_dx[i][j]=d_contacts_total_dx[idx][j];
+     d_contacts_total_filtered_dy[i][j]=d_contacts_total_dy[idx][j];
+     d_contacts_total_filtered_dz[i][j]=d_contacts_total_dz[idx][j];
+    }
+  }
+   contacts_apolar=contacts_apolar_filtered;
+   d_contacts_apolar_dx=d_contacts_apolar_filtered_dx;
+   d_contacts_apolar_dy=d_contacts_apolar_filtered_dy;
+   d_contacts_apolar_dz=d_contacts_apolar_filtered_dz;
+
+   contacts_total=contacts_total_filtered;
+   d_contacts_total_dx=d_contacts_total_filtered_dx;
+   d_contacts_total_dy=d_contacts_total_filtered_dy;
+   d_contacts_total_dz=d_contacts_total_filtered_dz;
+}
+

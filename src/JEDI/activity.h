@@ -9,12 +9,11 @@ using namespace std;
 
 class activity
 {
- private:
-   vector<double> S_on_mindist;
-   vector<double> S_on_contacts;
  public:
    activity();
    vector<double> activity_grid;
+   vector<double> S_on_mindist;
+   vector<double> S_on_contacts;
    vector<vector<double>> d_activity_dx;
    vector<vector<double>> d_activity_dy;
    vector<vector<double>> d_activity_dz;
@@ -33,7 +32,7 @@ class activity
                            vector<vector<double>> d_contacts_total_dy,
                            vector<vector<double>> d_contacts_total_dz,
                            double Emin, double deltaE);
-  void filter_activities();
+  void filter_activities(vector<unsigned> cluster);
   void print_activities();
 
 };

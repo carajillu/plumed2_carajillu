@@ -88,27 +88,47 @@ void activity::compute_activities(vector<double> mindist,
 }
 
 /*
-This removes the grid points that have activity=0, but not used at the moment
+This filters the activities to keep only the ones corresponding to a certain cluster
 */
-void activity::filter_activities()
+void activity::filter_activities(vector<unsigned> cluster)
 {
-   vector<double> activity_grid_filtered;
-   vector<vector<double>> d_activity_dx_filtered;
-   vector<vector<double>> d_activity_dy_filtered;
-   vector<vector<double>> d_activity_dz_filtered;
-   for (unsigned i=0; i<activity_grid.size();i++)
-   {
-     if (activity_grid[i]==0) continue;
-     activity_grid_filtered.push_back(activity_grid[i]);
-     d_activity_dx_filtered.push_back(d_activity_dx[i]);
-     d_activity_dy_filtered.push_back(d_activity_dy[i]);
-     d_activity_dz_filtered.push_back(d_activity_dz[i]);
-     active_indices.push_back(i);
-   }
+  vector<double> activity_grid_filtered(cluster.size(),0);
+  vector<double> d_activity_i(d_activity_dx[0].size(),0);
+  vector<vector<double>> d_activity_dx_filtered(cluster.size(),d_activity_i);
+  vector<vector<double>> d_activity_dy_filtered(cluster.size(),d_activity_i);
+  vector<vector<double>> d_activity_dz_filtered(cluster.size(),d_activity_i);
+
+  double sum_activity_filtered=0;
+  vector<double> d_sum_activity_filtered_dx=d_activity_i;
+  vector<double> d_sum_activity_filtered_dy=d_activity_i;
+  vector<double> d_sum_activity_filtered_dz=d_activity_i;
+  
+
+  for (unsigned i=0; i<cluster.size();i++)
+  {
+    unsigned idx=cluster[i];
+    activity_grid_filtered[i]=(activity_grid[idx]);
+    d_activity_dx_filtered[i]=(d_activity_dx[idx]);
+    d_activity_dy_filtered[i]=(d_activity_dy[idx]);
+    d_activity_dz_filtered[i]=(d_activity_dz[idx]);
+    sum_activity_filtered+=activity_grid_filtered[i];
+
+    for (unsigned j=0; j<d_activity_i.size();j++)
+    {
+     d_sum_activity_filtered_dx[j]+=d_activity_dx[idx][j];
+     d_sum_activity_filtered_dy[j]+=d_activity_dy[idx][j];
+     d_sum_activity_filtered_dz[j]+=d_activity_dz[idx][j];
+    }
+  }
    activity_grid=activity_grid_filtered;
    d_activity_dx=d_activity_dx_filtered;
    d_activity_dy=d_activity_dy_filtered;
    d_activity_dz=d_activity_dz_filtered;
+
+   sum_activity=sum_activity_filtered;
+   d_sum_activity_dx=d_sum_activity_filtered_dx;
+   d_sum_activity_dy=d_sum_activity_filtered_dy;
+   d_sum_activity_dz=d_sum_activity_filtered_dz;
 }
 
 void activity::print_activities()

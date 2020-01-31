@@ -146,7 +146,7 @@ jedi::jedi(const ActionOptions&ao):
   parse("GRID",pdb_grid);
   grid.readAtoms(pdb_grid);
   cout << "Loaded file " << pdb_grid << " and found " << grid.atomnumbers.size() << " elements." << endl;
-  grid.compute_neighbours(grid.positions,params.GP_max);
+  grid.compute_neighbours(grid.positions,params.GP_min);
   int max_neighbours=0;
   for (unsigned i=0; i<grid.positions.size();i++)
   {
@@ -247,15 +247,17 @@ void jedi::calculate() {
                               contacts_sum.contacts_total,
                               contacts_sum.d_contacts_total_dx,contacts_sum.d_contacts_total_dy,contacts_sum.d_contacts_total_dz,
                               params.Emin, params.deltaE);
-  activity.print_activities();
-  grid.print_atoms("grid");
 
   clustering clusters;
-  clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max, params.resolution);
-  clusters.print_clusters(grid.positions);
-  exit(0);
+  clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max, params.resolution, activity.sum_activity);
+  //clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_on_contacts);
 
- 
+  vector<unsigned> biggest_cluster=clusters.clusters[clusters.biggest_cluster_idx];
+  //cout << "getting biggest cluster: " << clusters.biggest_cluster_idx << " with " <<biggest_cluster.size() << " elements" << endl;
+  activity.filter_activities(biggest_cluster);
+  contacts_sum.filter_contacts(biggest_cluster);
+  
+   
   Volume volume;
   double volume_element=pow(params.resolution,3);
   volume.compute_volume(activity.sum_activity,volume_element,
@@ -274,8 +276,9 @@ void jedi::calculate() {
                                         activity.sum_activity,
                                         activity.d_sum_activity_dx,activity.d_sum_activity_dy,activity.d_sum_activity_dz);
   
-  
+
   double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
+  cout << "Sum_activity " << activity.sum_activity << " Va = " << volume.volume << " Ha = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
   setValue(Jedi);
 
   vector<double> dJedi_dx(all_atoms.atomnumbers.size(),0);
@@ -296,6 +299,8 @@ void jedi::calculate() {
   {
     setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
   }
+
+  
 }
 
 }

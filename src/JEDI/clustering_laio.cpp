@@ -20,10 +20,17 @@ bool clustering::sort_grid(const laio &a, const laio &b)
     return a.idx > b.idx;
 } 
 
-void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours, double GP_max, double grid_resolution)
+void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours, double delta_0, double grid_resolution, double sum_activity)
 {
+  if (sum_activity==0) 
+  {
+   cout << "No active points to cluster";
+   return;
+  }
+
   int clust_id=0;
-  #pragma omp parallel shared(grid_stats, clust_id)
+  
+  #pragma omp parallel shared(clust_id)
   {
     vector<laio> grid_stats_private;
     // Build the vector with all the data dor each grid point and calculate all densities
@@ -34,7 +41,7 @@ void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_
      laio point_stats;
      point_stats.idx=i;
      point_stats.activity=activity[i];
-     point_stats.density=0;
+     point_stats.density++;
      point_stats.nnhd=-1;
      point_stats.delta=9999999;
      point_stats.cluster=-1;
@@ -89,12 +96,11 @@ void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_
   grid_stats[0].cluster=0;
   vector<unsigned> cluster(1,grid_stats[0].idx);
   clusters.push_back(cluster);
-
   for (unsigned i=1; i<grid_stats.size();i++)
   {
     unsigned idx_i=grid_stats[i].idx;
     //Assign cluster centers
-    if (grid_stats[i].delta > GP_max)
+    if (grid_stats[i].delta > delta_0)
       {
         clust_id++;  
         grid_stats[i].cluster=clust_id;
@@ -107,7 +113,13 @@ void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_
         grid_stats[i].cluster=grid_stats[nnhd].cluster;
         clusters[grid_stats[i].cluster].push_back(idx_i);
       }
-      
+  }
+
+  biggest_cluster_idx=0;
+  for (unsigned i=0; i<clusters.size(); i++)
+  {
+   if (clusters[i].size()>clusters[biggest_cluster_idx].size())
+      biggest_cluster_idx=i;
   }
 /*
   for (unsigned i=0; i<grid_stats.size();i++)
@@ -127,7 +139,7 @@ void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_
   */
 }
 
-void clustering::print_clusters(vector<PLMD::Vector> grid)
+void clustering::print_clusters(vector<PLMD::Vector> grid, vector<double> activity_grid, vector<double> S_on_mindist, vector<double> S_on_contacts)
 {
  for (unsigned k=0; k<clusters.size();k++)
      {
@@ -140,6 +152,7 @@ void clustering::print_clusters(vector<PLMD::Vector> grid)
         //string outer=out.str();
         filename.append(number);
         filename.append("-step-");
+        string actname=filename;
         //filename.append(outer); 
         filename.append(".xyz");
         ofstream wfile;
@@ -152,5 +165,17 @@ void clustering::print_clusters(vector<PLMD::Vector> grid)
             wfile << "H " << std::fixed << std::setprecision(5) << grid[clusters[k][i]][0]*10 << " " << grid[clusters[k][i]][1]*10 << " " << grid[clusters[k][i]][2]*10 << endl;
           }
         wfile.close();
+
+        //Printing activities of each cluster
+        actname.append(".txt");
+        ofstream afile;
+        afile.open(actname.c_str());
+        afile << "Point Activity Close_contact Depth" << endl;
+        for (unsigned i=0; i<clusters[k].size();i++)
+         {
+          unsigned idx=clusters[k][i];
+          afile << std::fixed << std::setprecision(5) << i << " " << activity_grid[idx] << " " << S_on_mindist[idx] << " " << S_on_contacts[idx] << endl;
+         }
+        afile.close();
      }
 }
