@@ -121,6 +121,12 @@ jedi::jedi(const ActionOptions&ao):
   addValueWithDerivatives(); //Developers' note: this goes before requestAtoms()
   setNotPeriodic();
 
+  /* OPENING STATS FILE */
+  ofstream summary;
+  summary.open("jedi_stats.dat");
+  summary << "Step sum_activity Va Ha JEDI" << endl;
+  summary.close();
+
   /*READING IN INPUT FILES*/
 
   //READ jedi.parameters here
@@ -321,9 +327,7 @@ void jedi::calculate() {
                                         activity.d_sum_activity_dx,activity.d_sum_activity_dy,activity.d_sum_activity_dz);
   
 
-  double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
-  iteration++;
-  cout << "Iteration "<< iteration <<": Sum_activity " << activity.sum_activity << " Va = " << volume.volume << " Ha = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
+  double Jedi=params.alpha*volume.volume+params.beta*hydrophobicity.Ha;
   setValue(Jedi);
 
   vector<double> dJedi_dx(protein.atomnumbers.size(),0);
@@ -345,7 +349,13 @@ void jedi::calculate() {
     setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
   }
 
-  
+  //PRINT OUTPUT FILE
+  iteration++;
+  int step=getStep();
+  ofstream wfile;
+  wfile.open("jedi_stats.dat",std::ios_base::app);
+  wfile << step <<" " << activity.sum_activity << " " << volume.volume << " " << hydrophobicity.Ha << " " << Jedi << endl;
+  wfile.close();
 }
 
 }
