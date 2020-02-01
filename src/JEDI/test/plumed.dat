@@ -1,6 +1,6 @@
-je: JEDI BINDINGSITE=system_allh.pdb GRID=grid.pdb PARAMETERS=jedi.params 
-jeN: JEDI BINDINGSITE=system_allh.pdb GRID=grid.pdb PARAMETERS=jedi.params NUMERICAL_DERIVATIVES
+je: JEDI BINDINGSITE=system_allh.pdb GRID=grid.pdb PARAMETERS=jedi.params LIGAND=ligand.pdb 
+jeN: JEDI BINDINGSITE=system_allh.pdb GRID=grid.pdb PARAMETERS=jedi.params LIGAND=ligand.pdb NUMERICAL_DERIVATIVES
 #je: JEDI BINDINGSITE=10atoms.pdb GRID=point_neighbours.pdb PARAMETERS=jedi.test
 #jeN: JEDI BINDINGSITE=10atoms.pdb GRID=point_neighbours.pdb PARAMETERS=jedi.test NUMERICAL_DERIVATIVES
 DUMPDERIVATIVES ARG=je,jeN STRIDE=1 FILE=DERIV
-PRINT ARG=je,jeN STRIDE=1 FILE=COLVAR
+PRINT ARG=je STRIDE=1 FILE=COLVAR
