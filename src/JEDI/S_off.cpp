@@ -61,9 +61,9 @@ void S_off::compute_S_off()
   }
   else if (0<m_value and m_value<1) 
   {
-    S_off_value = k*(1-3*pow(m_value,4)+2*(pow(m_value,6)));
+    S_off_value = k*(3*pow((m_value-1),4)-2*(pow((m_value-1),6)));;
     
-    double d_Soff_dm = 12*k*(pow(m_value,5)-pow(m_value,3)); // First part of the derivative
+    double d_Soff_dm = 12*k*(pow((m_value-1),3)-pow((m_value-1),5));; // First part of the derivative
     #pragma omp parallel for
     for (unsigned j=0; j<dm_dx.size();j++)
     {
