@@ -160,7 +160,6 @@ jedi::jedi(const ActionOptions&ao):
    //cout << "Center of geometry went from: " << ligand.cog0[0] << "," << ligand.cog0[1] << "," << ligand.cog0[2] << " to " << \
                                               ligand.cog[0] << "," << ligand.cog[1] << "," << ligand.cog[2] << endl;
   }
-  cout << "*********************************" << endl;
   
   vector<PLMD::AtomNumber> atomstorequest;
   for (unsigned j=0; j<protein.atomnumbers.size();j++)
@@ -338,9 +337,9 @@ void jedi::calculate() {
   for (unsigned j=0; j<protein.atoms_jedi.size();j++)
   {
     unsigned atom_idx=protein.atoms_jedi[j];
-    dJedi_dx[atom_idx]=params.alpha*volume.d_volume_dx[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dx[j];
-    dJedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dy[j];
-    dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dz[j];
+    dJedi_dx[atom_idx]=params.alpha*volume.d_volume_dx[j]+params.beta*hydrophobicity.d_Ha_dx[j];
+    dJedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j]+params.beta*hydrophobicity.d_Ha_dy[j];
+    dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]+params.beta*hydrophobicity.d_Ha_dz[j];
   }
   
   #pragma omp parallel for

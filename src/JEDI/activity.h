@@ -13,7 +13,7 @@ class activity
    activity();
    vector<double> activity_grid;
    vector<double> S_on_mindist;
-   vector<double> S_on_contacts;
+   vector<double> S_off_contacts;
    vector<vector<double>> d_activity_dx;
    vector<vector<double>> d_activity_dy;
    vector<vector<double>> d_activity_dz;
