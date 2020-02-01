@@ -21,6 +21,7 @@ class getatoms
     getatoms();
     void readAtoms(string pdb_file);
     void center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_in);
+    void compute_cog(vector<PLMD::Vector> &positions);
     void select_atoms(vector<PLMD::Vector> &positions, vector<PLMD::Vector> grid_positions, vector<string> &atomnames, double r_max);
     void compute_neighbours(vector<PLMD::Vector> &positions, double GP_max);
     void print_atoms(string base);

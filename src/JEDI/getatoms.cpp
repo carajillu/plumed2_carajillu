@@ -116,6 +116,17 @@ void getatoms::center_atoms(vector<PLMD::Vector> &positions, vector<double> cog_
        }
    }
    
+   void getatoms::compute_cog(vector<PLMD::Vector> &positions)
+   {
+     cog=vector<double>(3,0);
+     for (unsigned j=0; j<positions.size();j++)
+      {
+       cog[0] += positions[j][0]/positions.size();
+       cog[1] += positions[j][1]/positions.size();
+       cog[2] += positions[j][2]/positions.size();
+      }
+   }
+
    void getatoms::select_atoms(vector<PLMD::Vector> &positions, vector<PLMD::Vector> grid_positions, vector<string> &atomnames, double r_max)
    {
      vector<PLMD::Vector> positions_new;

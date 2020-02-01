@@ -77,9 +77,10 @@ class jedi : public Colvar {
 private:  
   bool pbc;
   jediparameters params;
-  getatoms all_atoms;
+  getatoms protein;
   getatoms grid;
   getatoms ligand;
+  int iteration=0;
 public:
   explicit jedi(const ActionOptions&);
 // active methods:
@@ -131,14 +132,41 @@ jedi::jedi(const ActionOptions&ao):
   cout << "*********************************" << endl;
   string pdb_bsite;
   parse("BINDINGSITE",pdb_bsite);
-  all_atoms.readAtoms(pdb_bsite);
-  cout << "Loaded file " << pdb_bsite << " and found " << all_atoms.atomnumbers.size() << " elements." << endl;
+  protein.readAtoms(pdb_bsite);
+  cout << "Loaded file " << pdb_bsite << " and found " << protein.atomnumbers.size() << " elements." << endl;
   //cout << "Moving center of geometry towards origin (0,0,0)" << endl;
   //vector<double> cog_atoms;
-  //all_atoms.center_atoms(all_atoms.positions,cog_atoms);
-  //cout << "Center of geometry went from: " << all_atoms.cog0[0] << "," << all_atoms.cog0[1] << "," << all_atoms.cog0[2] << " to " << \
-                                              all_atoms.cog[0] << "," << all_atoms.cog[1] << "," << all_atoms.cog[2] << endl;
-  requestAtoms(all_atoms.atomnumbers);
+  //protein.center_atoms(protein.positions,cog_atoms);
+  //cout << "Center of geometry went from: " << protein.cog0[0] << "," << protein.cog0[1] << "," << protein.cog0[2] << " to " << \
+                                              protein.cog[0] << "," << protein.cog[1] << "," << protein.cog[2] << endl;
+
+                                                //Read reference ligand file
+  string pdb_ligand;
+  parse("LIGAND",pdb_ligand);
+  if(pdb_ligand.length() > 0)
+  {
+   cout << "*********************************" << endl;
+   ligand.readAtoms(pdb_ligand);
+   ligand.compute_cog(ligand.positions);
+   cout << "Loaded file " << pdb_ligand << " and found " << ligand.atomnumbers.size() << " elements." << endl;
+   //cout << "Moving center of geometry towards origin (0,0,0)" << endl;
+   //ligand.center_atoms(ligand.positions,protein.cog0);
+   //cout << "Center of geometry went from: " << ligand.cog0[0] << "," << ligand.cog0[1] << "," << ligand.cog0[2] << " to " << \
+                                              ligand.cog[0] << "," << ligand.cog[1] << "," << ligand.cog[2] << endl;
+  }
+  cout << "*********************************" << endl;
+  
+  vector<PLMD::AtomNumber> atomstorequest;
+  for (unsigned j=0; j<protein.atomnumbers.size();j++)
+  {
+    atomstorequest.push_back(protein.atomnumbers[j]);
+  }
+  for (unsigned k=0; k<ligand.atomnumbers.size();k++)
+  {
+    atomstorequest.push_back(ligand.atomnumbers[k]);
+  }
+
+  requestAtoms(atomstorequest); //Developer's note: this goes AFTER protein and ligand because we want to request the atoms of the ligand too
 
   //Read grid file
   cout << "*********************************" << endl;
@@ -154,24 +182,10 @@ jedi::jedi(const ActionOptions&ao):
   }
   cout << "Maximum number of neighbours found: " << max_neighbours << endl;
   //cout << "Moving center of geometry towards origin (0,0,0)" << endl;
-  //grid.center_atoms(grid.positions,all_atoms.cog0);
+  //grid.center_atoms(grid.positions,protein.cog0);
   //cout << "Center of geometry went from: " << grid.cog0[0] << "," << grid.cog0[1] << "," << grid.cog0[2] << " to " << \
                                               grid.cog[0] << "," << grid.cog[1] << "," << grid.cog[2] << endl;
 
-  //Read reference ligand file (to be deprecated)
-  string pdb_ligand;
-  parse("LIGAND",pdb_ligand);
-  if(pdb_ligand.length() > 0)
-  {
-   cout << "*********************************" << endl;
-   ligand.readAtoms(pdb_ligand);
-   cout << "Loaded file " << pdb_ligand << " and found " << ligand.atomnumbers.size() << " elements." << endl;
-   //cout << "Moving center of geometry towards origin (0,0,0)" << endl;
-   //ligand.center_atoms(ligand.positions,all_atoms.cog0);
-   //cout << "Center of geometry went from: " << ligand.cog0[0] << "," << ligand.cog0[1] << "," << ligand.cog0[2] << " to " << \
-                                              ligand.cog[0] << "," << ligand.cog[1] << "," << ligand.cog[2] << endl;
-  }
-  cout << "*********************************" << endl;
   checkRead();
    
   /*INITIALISING COLLECTIVE VARIABLE*/
@@ -188,24 +202,54 @@ void jedi::calculate() {
   /////////////////////////////////////////////////
 
   /*
-  The cubic grid is updated by simply centering it
-  in the COG of a rigid part of the ligand
+  Update the positions of the ligand and find the displacement of the center of geometry
   */
+  ligand.atoms_jedi.clear();
+  ligand.atomnames_jedi.clear();
+  ligand.positions.clear();
+  int protein_natoms=protein.atomnumbers.size(); // This will be the first index of the ligand;
+  int total_natoms= protein_natoms+ligand.atomnumbers.size(); //This is the total number of requested atoms
+  for (unsigned k=protein_natoms; k<total_natoms;k++)
+  {
+    ligand.positions.push_back(getPosition(k));
+    
+  }
+  
+  ligand.cog0=ligand.cog;
+  ligand.compute_cog(ligand.positions);
+  vector<double> displacement(3,0);
+  displacement[0]=ligand.cog[0]-ligand.cog0[0];
+  displacement[1]=ligand.cog[1]-ligand.cog0[1];
+  displacement[2]=ligand.cog[2]-ligand.cog0[2];
+
+  /*
+   Move the grid by the exact displacement of the ligand center of geometry.
+   IMPORTANT: This won't work if the ligand is not rigid
+   IMPORTANT: The grid needs to be really BIG and symmetric (cubic, for example) in 
+             order to minimise the effects of the lack of rotation
+  */
+  for (unsigned i=0; i<grid.positions.size();i++)
+  {
+    grid.positions[i][0]+=displacement[0];
+    grid.positions[i][1]+=displacement[1];
+    grid.positions[i][2]+=displacement[2];
+  }
   
   /*
   Shrink grid and binding site so that only atoms/points that
   are within interacting distance from each other are kept
   */
-  all_atoms.atoms_jedi.clear();
-  all_atoms.atomnames_jedi.clear();
-  all_atoms.positions.clear();
-  for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
+  protein.atoms_jedi.clear();
+  protein.atomnames_jedi.clear();
+  protein.positions.clear();
+  for (unsigned j=0; j<protein.atomnumbers.size();j++)
   {
-    all_atoms.positions.push_back(getPosition(j));
+    protein.positions.push_back(getPosition(j));
   }
-  all_atoms.select_atoms(all_atoms.positions,grid.positions,all_atoms.atomnames,params.r_max);
+  protein.select_atoms(protein.positions,grid.positions,protein.atomnames,params.r_max);
   
-  //grid.select_atoms(grid.positions,all_atoms.positions,grid.atomnames,params.r_max); //NOT YET
+  
+  //grid.select_atoms(grid.positions,protein.positions,grid.atomnames,params.r_max); //NOT YET
   
   
   /////////////////////////////////////////////////
@@ -213,7 +257,7 @@ void jedi::calculate() {
   /////////////////////////////////////////////////
   
   distances distance_matrix;
-  distance_matrix.compute_distance_matrix(all_atoms.positions,grid.positions);
+  distance_matrix.compute_distance_matrix(protein.positions,grid.positions);
 
   
   mindist min_dist;
@@ -237,7 +281,7 @@ void jedi::calculate() {
                                     contacts.d_contacts_dx,
                                     contacts.d_contacts_dy,
                                     contacts.d_contacts_dz,
-                                    all_atoms.atomnames_jedi);
+                                    protein.atomnames_jedi);
 
   
   activity activity;
@@ -278,24 +322,25 @@ void jedi::calculate() {
   
 
   double Jedi=params.alpha*volume.volume/params.V_max+params.beta*hydrophobicity.Ha+params.gamma;
-  cout << "Sum_activity " << activity.sum_activity << " Va = " << volume.volume << " Ha = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
+  iteration++;
+  cout << "Iteration "<< iteration <<": Sum_activity " << activity.sum_activity << " Va = " << volume.volume << " Ha = " << hydrophobicity.Ha << " JEDI = " << Jedi << endl;
   setValue(Jedi);
 
-  vector<double> dJedi_dx(all_atoms.atomnumbers.size(),0);
-  vector<double> dJedi_dy(all_atoms.atomnumbers.size(),0);
-  vector<double> dJedi_dz(all_atoms.atomnumbers.size(),0);
+  vector<double> dJedi_dx(protein.atomnumbers.size(),0);
+  vector<double> dJedi_dy(protein.atomnumbers.size(),0);
+  vector<double> dJedi_dz(protein.atomnumbers.size(),0);
 
   #pragma omp parallel for
-  for (unsigned j=0; j<all_atoms.atoms_jedi.size();j++)
+  for (unsigned j=0; j<protein.atoms_jedi.size();j++)
   {
-    unsigned atom_idx=all_atoms.atoms_jedi[j];
+    unsigned atom_idx=protein.atoms_jedi[j];
     dJedi_dx[atom_idx]=params.alpha*volume.d_volume_dx[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dx[j];
     dJedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dy[j];
     dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]/params.V_max+params.beta*hydrophobicity.d_Ha_dz[j];
   }
   
   #pragma omp parallel for
-  for (unsigned j=0; j<all_atoms.atomnumbers.size();j++)
+  for (unsigned j=0; j<protein.atomnumbers.size();j++)
   {
     setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
   }
