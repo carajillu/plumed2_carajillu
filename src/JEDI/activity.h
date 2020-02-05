@@ -13,7 +13,7 @@ class activity
    activity();
    vector<double> activity_grid;
    vector<double> S_on_mindist;
-   vector<double> S_off_contacts;
+   vector<double> S_off_mindist;
    vector<vector<double>> d_activity_dx;
    vector<vector<double>> d_activity_dy;
    vector<vector<double>> d_activity_dz;
@@ -21,17 +21,12 @@ class activity
    vector<double> d_sum_activity_dx;
    vector<double> d_sum_activity_dy;
    vector<double> d_sum_activity_dz;
-   vector<unsigned> active_indices;
    void compute_activities(vector<double> mindist, 
                            vector<vector<double>> d_mindist_dx,
                            vector<vector<double>> d_mindist_dy,
                            vector<vector<double>> d_mindist_dz,
                            double CCmin, double deltaCC,
-                           vector<double> total_contacts,
-                           vector<vector<double>> d_contacts_total_dx,
-                           vector<vector<double>> d_contacts_total_dy,
-                           vector<vector<double>> d_contacts_total_dz,
-                           double Emin, double deltaE);
+                           double r_hydro, double deltar_hydro);
   void filter_activities(vector<unsigned> cluster);
   void print_activities();
 

@@ -22,13 +22,9 @@ void activity::compute_activities(vector<double> mindist,
                                   vector<vector<double>> d_mindist_dy,
                                   vector<vector<double>> d_mindist_dz,
                                   double CC_min, double deltaCC,
-                                  vector<double> total_contacts,
-                                  vector<vector<double>> d_contacts_total_dx,
-                                  vector<vector<double>> d_contacts_total_dy,
-                                  vector<vector<double>> d_contacts_total_dz,
-                                  double Emin, double deltaE)
+                                  double r_hydro, double deltar_hydro)
 {
-  S_off_contacts=vector<double>(mindist.size(),0);
+  S_off_mindist=vector<double>(mindist.size(),0);
   S_on_mindist=vector<double>(mindist.size(),0);
   activity_grid=vector<double>(mindist.size(),0);
   vector<double> d_activity_i(d_mindist_dx[0].size(),0);
@@ -49,23 +45,23 @@ void activity::compute_activities(vector<double> mindist,
    close_contact_i.compute_S_on();
    S_on_mindist[i]=close_contact_i.S_on_value;
 
-   S_off depth_i(total_contacts[i],Emin,deltaE,d_contacts_total_dx[i],d_contacts_total_dy[i],d_contacts_total_dz[i]);
+   S_off depth_i(mindist[i],r_hydro,deltar_hydro,d_mindist_dx[i],d_mindist_dy[i],d_mindist_dz[i]);
    depth_i.compute_S_off();
-   S_off_contacts[i]=depth_i.S_off_value;
+   S_off_mindist[i]=depth_i.S_off_value;
 
-   activity_grid[i]=close_contact_i.S_on_value*(1.-depth_i.S_off_value);
+   activity_grid[i]=close_contact_i.S_on_value*depth_i.S_off_value;
    sum_activity+=activity_grid[i];
    for (unsigned j=0; j<d_activity_dx[i].size(); j++)
      {
-       d_activity_dx[i][j]=(1.-depth_i.S_off_value)*close_contact_i.d_Son_dx[j]-
+       d_activity_dx[i][j]=depth_i.S_off_value*close_contact_i.d_Son_dx[j]+
                            close_contact_i.S_on_value*depth_i.d_Soff_dx[j];
        d_sum_activity_dx[j]+=d_activity_dx[i][j];
 
-       d_activity_dy[i][j]=(1.-depth_i.S_off_value)*close_contact_i.d_Son_dy[j]-
+       d_activity_dy[i][j]=depth_i.S_off_value*close_contact_i.d_Son_dy[j]+
                            close_contact_i.S_on_value*depth_i.d_Soff_dy[j];
        d_sum_activity_dy[j]+=d_activity_dy[i][j];
 
-       d_activity_dz[i][j]=(1.-depth_i.S_off_value)*close_contact_i.d_Son_dz[j]-
+       d_activity_dz[i][j]=depth_i.S_off_value*close_contact_i.d_Son_dz[j]+
                            close_contact_i.S_on_value*depth_i.d_Soff_dz[j];
        d_sum_activity_dz[j]+=d_activity_dz[i][j];                    
      }
@@ -142,7 +138,7 @@ void activity::print_activities()
       wfile << "Point Activity Close_contact Depth" << endl;
       for (unsigned i=0; i<activity_grid.size();i++)
         {
-          wfile << std::fixed << std::setprecision(5) << i << " " << activity_grid[i] << " " << S_on_mindist[i] << " " << (1-S_off_contacts[i]) << endl;
+          wfile << std::fixed << std::setprecision(5) << i << " " << activity_grid[i] << " " << S_on_mindist[i] << " " << S_off_mindist[i] << endl;
        }
       wfile.close();
 }

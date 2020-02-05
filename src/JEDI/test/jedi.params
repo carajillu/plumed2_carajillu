@@ -2,16 +2,12 @@
 # Feb 2016 Emin/deltaE values modified for better MD stability
 # Feb 2016 GP1_min GP2_min & deltaGP1/GP2 replaced by GP_min & GP_max
 alpha               =   5.31  ; PLS slope active volume
-beta                =  24.29  ; PLS slope hydrophobicity
-gamma               = -13.39  ; PLS constant 
-theta               =   15.0   ; theta parameter for the minimum distance approximation
-CC_mind             =   0.16 ; distance (nm) below which a grid point is fully in close contact with the protein
-deltaCC             =   0.20; interval (nm) over which a grid point is in partial contact with the protein
-Emin                =   1.65; exposure value from which s_on_exposure starts to be >0 
-deltaE              =   10.0;     ; interval over which the s_on_exposure value reaches 1.0
-GP_min              =   0.26 ; distance (nm) above which a grid point is considered for exposure calculation
+theta               =   15.0  ; theta parameter for the minimum distance approximation
+CC_mind             =   0.22  ; distance (nm) below which a grid point is fully in close contact with the protein
+deltaCC             =   0.14  ; interval (nm) over which a grid point is in partial contact with the protein
+GP_min              =   0.26  ; distance (nm) above which a grid point is considered for exposure calculation
 GP_max              =   0.37  ; distance (nm) below which a grid point is considered for exposure calculation
-r_hydro             =   0.36 distance (nm) below which a grid point is fully in close contact with the protein (for hydrophobicity calculation)
-deltar_hydro        =   0.14 ;interval interval over which a grid point is in partial contact with the protein (for hydrophobicity calculation)
+r_hydro             =   0.36  ;distance (nm) below which a grid point is fully in close contact with the protein (for hydrophobicity calculation)
+deltar_hydro        =   0.09  ;interval interval over which a grid point is in partial contact with the protein (for hydrophobicity calculation)
 grid_resolution     =   0.150 ; Space (nm) between two adjacent grid points
-r_max               =   0.50;
+r_max               =   0.50  ;

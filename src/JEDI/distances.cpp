@@ -64,3 +64,24 @@ void distances::compute_distance_matrix(vector<PLMD::Vector> protein, vector<PLM
   */
 }
 
+void distances::filter_distance_matrix(vector<unsigned> indices)
+{
+  vector<double> row(r_matrix[0].size(),-1.);
+  vector<vector<double>> r_matrix_new(r_matrix.size(),row);
+  vector<vector<double>> dr_matrix_dx_new(r_matrix.size(),row);
+  vector<vector<double>> dr_matrix_dy_new(r_matrix.size(),row);
+  vector<vector<double>> dr_matrix_dz_new(r_matrix.size(),row);
+  for (unsigned i=0; i<indices.size();i++)
+  {
+   unsigned idx=indices[i];
+   r_matrix_new[i]=r_matrix[idx];
+   dr_matrix_dx_new[i]=dr_matrix_dx[idx];
+   dr_matrix_dy_new[i]=dr_matrix_dy[idx];
+   dr_matrix_dz_new[i]=dr_matrix_dz[idx];
+  }
+  r_matrix=r_matrix_new;
+  dr_matrix_dx=dr_matrix_dx_new;
+  dr_matrix_dy=dr_matrix_dy_new;
+  dr_matrix_dz=dr_matrix_dz_new;
+}
+

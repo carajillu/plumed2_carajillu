@@ -15,6 +15,7 @@ class distances
    vector<vector<double>> dr_matrix_dy;
    vector<vector<double>> dr_matrix_dz;
    void compute_distance_matrix(vector<PLMD::Vector> protein, vector<PLMD::Vector> grid);
+   void filter_distance_matrix(vector<unsigned> indices);
 };
 
 class mindist

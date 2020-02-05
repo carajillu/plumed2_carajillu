@@ -12,10 +12,10 @@ clustering::clustering()
 
 bool clustering::sort_grid(const laio &a, const laio &b)
 {
-  if (a.density!=b.density)
-    return a.density>b.density;
-  else if (a.activity!=b.activity)
+  if (a.activity!=b.activity)
     return a.activity>b.activity;
+  else if (a.density!=b.density)
+    return a.density>b.density;
   else 
     return a.idx > b.idx;
 } 
@@ -41,13 +41,13 @@ void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_
      laio point_stats;
      point_stats.idx=i;
      point_stats.activity=activity[i];
-     point_stats.density++;
+     point_stats.density=0;
      point_stats.nnhd=-1;
      point_stats.delta=9999999;
      point_stats.cluster=-1;
      for(unsigned k=0; k<neighbours[i].size();k++)
      {
-       if (activity[k]>0) point_stats.density++;
+       point_stats.density+=activity[neighbours[i][k]];
      }
      grid_stats_private.push_back(point_stats);
     }

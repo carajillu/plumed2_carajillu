@@ -124,7 +124,7 @@ jedi::jedi(const ActionOptions&ao):
   /* OPENING STATS FILE */
   ofstream summary;
   summary.open("jedi_stats.dat");
-  summary << "Step sum_activity Va Ha JEDI" << endl;
+  summary << "Step sum_activity Va JEDI" << endl;
   summary.close();
 
   /*READING IN INPUT FILES*/
@@ -264,7 +264,8 @@ void jedi::calculate() {
   distances distance_matrix;
   distance_matrix.compute_distance_matrix(protein.positions,grid.positions);
 
-  
+  // Calculate activity
+
   mindist min_dist;
   min_dist.compute_mindist(distance_matrix.r_matrix,
                           distance_matrix.dr_matrix_dx,
@@ -272,7 +273,25 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dz,
                           params.theta);
 
-                        
+  activity activity;
+  activity.compute_activities(min_dist.min_dist, 
+                              min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
+                              params.CC_mind,params.deltaCC,
+                              params.r_hydro, params.deltar_hydro);
+
+  // Cluster active grid points
+
+  clustering clusters;
+  clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max, params.resolution, activity.sum_activity);
+  clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_off_mindist);
+
+  vector<unsigned> biggest_cluster=clusters.clusters[clusters.biggest_cluster_idx];
+  //cout << "getting biggest cluster: " << clusters.biggest_cluster_idx << " with " <<biggest_cluster.size() << " elements" << endl;
+  activity.filter_activities(biggest_cluster);
+  distance_matrix.filter_distance_matrix(biggest_cluster);
+
+  // Calculate hydrophobicity of the biggest cluster
+
   contacts_Soff contacts;
   contacts.compute_contacts_S_off(distance_matrix.r_matrix,
                                   distance_matrix.dr_matrix_dx,
@@ -288,45 +307,23 @@ void jedi::calculate() {
                                     contacts.d_contacts_dz,
                                     protein.atomnames_jedi);
 
-  
-  activity activity;
-  activity.compute_activities(min_dist.min_dist, 
-                              min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
-                              params.CC_mind,params.deltaCC,
-                              contacts_sum.contacts_total,
-                              contacts_sum.d_contacts_total_dx,contacts_sum.d_contacts_total_dy,contacts_sum.d_contacts_total_dz,
-                              params.Emin, params.deltaE);
-
-  clustering clusters;
-  clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max, params.resolution, activity.sum_activity);
-  //clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_on_contacts);
-
-  vector<unsigned> biggest_cluster=clusters.clusters[clusters.biggest_cluster_idx];
-  //cout << "getting biggest cluster: " << clusters.biggest_cluster_idx << " with " <<biggest_cluster.size() << " elements" << endl;
-  activity.filter_activities(biggest_cluster);
-  contacts_sum.filter_contacts(biggest_cluster);
-  
-   
-  Volume volume;
-  double volume_element=pow(params.resolution,3);
-  volume.compute_volume(activity.sum_activity,volume_element,
-                        activity.d_sum_activity_dx,
-                        activity.d_sum_activity_dy,
-                        activity.d_sum_activity_dz);
-
-  
   hydrophobicity hydrophobicity;
   hydrophobicity.compute_hydrophobicity(contacts_sum.contacts_apolar,
                                         contacts_sum.d_contacts_apolar_dx,contacts_sum.d_contacts_apolar_dy,contacts_sum.d_contacts_apolar_dz,
                                         contacts_sum.contacts_total,
-                                        contacts_sum.d_contacts_total_dx,contacts_sum.d_contacts_total_dy,contacts_sum.d_contacts_total_dz,
-                                        activity.activity_grid,
-                                        activity.d_activity_dx,activity.d_activity_dy,activity.d_activity_dz,
-                                        activity.sum_activity,
-                                        activity.d_sum_activity_dx,activity.d_sum_activity_dy,activity.d_sum_activity_dz);
+                                        contacts_sum.d_contacts_total_dx,contacts_sum.d_contacts_total_dy,contacts_sum.d_contacts_total_dz);
+
+  //Calculate the hydroactive volume of the biggest cluster
+  Volume volume;
+  volume.compute_hydroactivity(activity.activity_grid,activity.d_activity_dx,activity.d_activity_dy,activity.d_activity_dz,
+                               hydrophobicity.Hydrophobicity_grid,hydrophobicity.d_Hydrophobicity_dx,hydrophobicity.d_Hydrophobicity_dy,hydrophobicity.d_Hydrophobicity_dz);
+  volume.compute_volume(volume.hydroactivity_grid,
+                        volume.d_hydroactivity_dx,volume.d_hydroactivity_dy,volume.d_hydroactivity_dz,
+                        params.resolution);
+  
   
 
-  double Jedi=params.alpha*volume.volume+params.beta*hydrophobicity.Ha;
+  double Jedi=params.alpha*volume.volume;
   setValue(Jedi);
 
   vector<double> dJedi_dx(protein.atomnumbers.size(),0);
@@ -337,9 +334,9 @@ void jedi::calculate() {
   for (unsigned j=0; j<protein.atoms_jedi.size();j++)
   {
     unsigned atom_idx=protein.atoms_jedi[j];
-    dJedi_dx[atom_idx]=params.alpha*volume.d_volume_dx[j]+params.beta*hydrophobicity.d_Ha_dx[j];
-    dJedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j]+params.beta*hydrophobicity.d_Ha_dy[j];
-    dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j]+params.beta*hydrophobicity.d_Ha_dz[j];
+    dJedi_dx[atom_idx]=params.alpha*volume.d_volume_dx[j];
+    dJedi_dy[atom_idx]=params.alpha*volume.d_volume_dy[j];
+    dJedi_dz[atom_idx]=params.alpha*volume.d_volume_dz[j];
   }
   
   #pragma omp parallel for
@@ -353,7 +350,7 @@ void jedi::calculate() {
   int step=getStep();
   ofstream wfile;
   wfile.open("jedi_stats.dat",std::ios_base::app);
-  wfile << step <<" " << activity.sum_activity << " " << volume.volume << " " << hydrophobicity.Ha << " " << Jedi << endl;
+  wfile << step <<" " << activity.sum_activity << " " << volume.volume << " " << Jedi << endl;
   wfile.close();
 }
 
