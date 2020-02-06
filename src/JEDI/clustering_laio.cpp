@@ -158,20 +158,25 @@ void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_
   */
 }
 
-void clustering::print_clusters(vector<PLMD::Vector> grid, vector<double> activity_grid, vector<double> S_on_mindist, vector<double> S_on_contacts)
+void clustering::print_clusters(vector<PLMD::Vector> grid, vector<double> activity_grid, vector<double> S_on_mindist, vector<double> S_on_contacts, int step)
 {
  for (unsigned k=0; k<clusters.size();k++)
      {
         string filename = "cluster-";
         stringstream num;
         num << k;
+        stringstream step_stream;
+        step_stream << step;
+        string step_str=step_stream.str();
         string number = num.str();
         //stringstream out;
         //out << step;
         //string outer=out.str();
         filename.append(number);
         filename.append("-step-");
+        filename.append(step_str);
         string actname=filename;
+        
         //filename.append(outer); 
         filename.append(".xyz");
         ofstream wfile;

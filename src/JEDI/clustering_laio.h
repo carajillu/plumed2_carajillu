@@ -23,7 +23,7 @@ class clustering
   vector<laio> grid_stats;
   vector<vector<unsigned>> clusters;
   void cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours,double GP_max, double grid_resolution, double sum_activity, vector<PLMD::Vector> ligand_positions, vector<PLMD::Vector> grid_positions);
-  void print_clusters(vector<PLMD::Vector> grid, vector<double> activity_grid, vector<double> S_on_mindist, vector<double> S_on_contacts);
+  void print_clusters(vector<PLMD::Vector> grid, vector<double> activity_grid, vector<double> S_on_mindist, vector<double> S_on_contacts, int step);
   int best_cluster_idx;
 };
 #endif

@@ -201,6 +201,7 @@ jedi::jedi(const ActionOptions&ao):
 // calculator
 void jedi::calculate() {
   if (pbc) makeWhole();
+  int step=getStep();
 
   /////////////////////////////////////////////////
   // Update Grid coordinates and Binding site    //
@@ -283,7 +284,7 @@ void jedi::calculate() {
 
   clustering clusters;
   clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max, params.resolution, activity.sum_activity, ligand.positions, grid.positions);
-  clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_off_mindist);
+  clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_off_mindist,step);
 
   vector<unsigned> biggest_cluster=clusters.clusters[clusters.best_cluster_idx];
   activity.filter_activities(biggest_cluster);
@@ -346,7 +347,6 @@ void jedi::calculate() {
 
   //PRINT OUTPUT FILE
   iteration++;
-  int step=getStep();
   ofstream wfile;
   wfile.open("jedi_stats.dat",std::ios_base::app);
   wfile << step <<" " << activity.sum_activity << " " << volume.volume << " " << Jedi << endl;
