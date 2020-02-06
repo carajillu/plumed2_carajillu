@@ -20,7 +20,7 @@ bool clustering::sort_grid(const laio &a, const laio &b)
     return a.idx > b.idx;
 } 
 
-void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours, double delta_0, double grid_resolution, double sum_activity)
+void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_matrix,vector<vector<unsigned>> neighbours, double delta_0, double grid_resolution, double sum_activity, vector<PLMD::Vector> ligand_positions, vector<PLMD::Vector> grid_positions)
 {
   if (sum_activity==0) 
   {
@@ -115,12 +115,31 @@ void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_
       }
   }
 
-  biggest_cluster_idx=0;
-  for (unsigned i=0; i<clusters.size(); i++)
+  best_cluster_idx=0;
+  vector<unsigned> best_cluster;
+  for (unsigned k=0; k<clusters.size(); k++)
   {
-   if (clusters[i].size()>clusters[biggest_cluster_idx].size())
-      biggest_cluster_idx=i;
+   bool add_cluster=false;
+   for (unsigned i=0; i<clusters[k].size();i++)
+   {
+     unsigned point_idx=clusters[k][i];
+     for (unsigned l=0; l<ligand_positions.size();l++)
+     {
+      double r=delta(ligand_positions[l],grid_positions[point_idx]).modulo();
+      if (r<grid_resolution)
+      {
+       add_cluster=true;
+       break;
+      }
+     }
+     if(add_cluster) break;
+   }
+   if (add_cluster)
+   {
+    best_cluster.insert(best_cluster.end(),clusters[k].begin(),clusters[k].end());
+   }
   }
+  clusters.insert(clusters.begin(),best_cluster);
 /*
   for (unsigned i=0; i<grid_stats.size();i++)
   {

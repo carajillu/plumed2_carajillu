@@ -282,11 +282,10 @@ void jedi::calculate() {
   // Cluster active grid points
 
   clustering clusters;
-  clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max, params.resolution, activity.sum_activity);
+  clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max, params.resolution, activity.sum_activity, ligand.positions, grid.positions);
   clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_off_mindist);
 
-  vector<unsigned> biggest_cluster=clusters.clusters[clusters.biggest_cluster_idx];
-  //cout << "getting biggest cluster: " << clusters.biggest_cluster_idx << " with " <<biggest_cluster.size() << " elements" << endl;
+  vector<unsigned> biggest_cluster=clusters.clusters[clusters.best_cluster_idx];
   activity.filter_activities(biggest_cluster);
   distance_matrix.filter_distance_matrix(biggest_cluster);
 
