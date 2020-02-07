@@ -1,5 +1,5 @@
-spectrum q, blue purple red, grid*, 0,1
-show spheres, grid*
+spectrum q, blue purple red, cluster*, 0,1
+show spheres, cluster*
 hide nonbonded
 set sphere_scale, 0.15
 load system_allh.pdb
@@ -7,3 +7,4 @@ show surface, system_allh
 color grey70, system_allh
 hide lines, system_allh
 set transparency, 0.5
+load ligand.pdb

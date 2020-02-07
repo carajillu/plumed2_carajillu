@@ -81,6 +81,7 @@ private:
   getatoms grid;
   getatoms ligand;
   int iteration=0;
+  int clustride;
 public:
   explicit jedi(const ActionOptions&);
 // active methods:
@@ -96,7 +97,8 @@ void jedi::registerKeywords(Keywords& keys)
   keys.add("compulsory","PARAMETERS","a file listing the parameters of the JEDI estimator.");
   keys.add("compulsory","BINDINGSITE","pdbfile containing the atoms of the binding site");
   keys.add("compulsory","GRID","PDB file containing the JEDI grid");
-  keys.add("optional","LIGAND","PDB file containing a known ligand (Optional)");
+  keys.add("compulsory","LIGAND","PDB file containing a known ligand");
+  keys.add("optional","CLUSTRIDE","Frequency in MD steps to write the best grid cluster xyz file (default: never)");
 }
 
 jedi::jedi(const ActionOptions&ao):
@@ -191,6 +193,13 @@ jedi::jedi(const ActionOptions&ao):
   //cout << "Center of geometry went from: " << grid.cog0[0] << "," << grid.cog0[1] << "," << grid.cog0[2] << " to " << \
                                               grid.cog[0] << "," << grid.cog[1] << "," << grid.cog[2] << endl;
 
+  string clustride_str;
+  parse("CLUSTRIDE",clustride_str);
+  if (clustride_str.length()==0)
+     clustride=0;
+  else
+     clustride=atoi(clustride_str.c_str());
+  
   checkRead();
    
   /*INITIALISING COLLECTIVE VARIABLE*/
@@ -218,7 +227,6 @@ void jedi::calculate() {
   for (unsigned k=protein_natoms; k<total_natoms;k++)
   {
     ligand.positions.push_back(getPosition(k));
-    
   }
   
   ligand.cog0=ligand.cog;
@@ -281,10 +289,12 @@ void jedi::calculate() {
                               params.r_hydro, params.deltar_hydro);
 
   // Cluster active grid points
-
+  //don't look at ligand atoms that are not close to the protein (will help discard useless shallow clusters)
+  ligand.select_atoms(ligand.positions,protein.positions,protein.atomnames,params.r_max_clust);
   clustering clusters;
   clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max, params.resolution, activity.sum_activity, ligand.positions, grid.positions);
-  clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_off_mindist,step);
+  if ((clustride!=0) and (step%clustride==0))
+     clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_off_mindist,step);
 
   vector<unsigned> biggest_cluster=clusters.clusters[clusters.best_cluster_idx];
   activity.filter_activities(biggest_cluster);

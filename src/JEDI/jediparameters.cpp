@@ -45,6 +45,7 @@ jediparameters::jediparameters() //JCN Aug2019: Currently not being used, but le
   deltaV_min = 0.0;
   resolution = 0.0;
   r_max = 0.0;
+  r_max_clust = 0.0;
 }
 
 void jediparameters::readParams(string parameters_file)
@@ -119,6 +120,8 @@ void jediparameters::readParams(string parameters_file)
 	resolution = item;
       else if ( key == string("r_max") )
 	r_max = item;
+      else if ( key == string("r_max_clust") )
+	r_max_clust = item;
     }
   fclose(fp);
 
@@ -145,4 +148,5 @@ void jediparameters::readParams(string parameters_file)
   cout << "deltaV_min  = " << deltaV_min << endl;
   cout << "grid_resolution = " << resolution << endl;
   cout << "r_max = " << r_max << endl;
+  cout << "r_max_clust = " << r_max_clust << endl;
 }

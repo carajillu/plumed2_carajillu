@@ -36,5 +36,6 @@ public:
   double deltaV_min;
   double resolution;
   double r_max;
+  double r_max_clust;
 };
 #endif
