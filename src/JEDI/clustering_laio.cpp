@@ -160,7 +160,8 @@ void clustering::cluster_grid(vector<double> activity, vector<vector<double>> r_
 
 void clustering::print_clusters(vector<PLMD::Vector> grid, vector<double> activity_grid, vector<double> S_on_mindist, vector<double> S_on_contacts, int step)
 {
- for (unsigned k=0; k<clusters.size();k++)
+ //for (unsigned k=0; k<clusters.size();k++)
+ for (unsigned k=0; k<1;k++)
      {
         string filename = "cluster-";
         stringstream num;
