@@ -1,4 +1,4 @@
-je: JEDI BINDINGSITE=system_allh.pdb GRID=grid.pdb PARAMETERS=jedi.params LIGAND=ligand.pdb CLUSTRIDE=1 
+je: JEDI BINDINGSITE=system_allh.pdb GRID=grid.pdb PARAMETERS=jedi.params LIGAND=ligand.pdb CLUSTRIDE=1 BENCHMARK 
 #jeN: JEDI BINDINGSITE=system_allh.pdb GRID=grid.pdb PARAMETERS=jedi.params LIGAND=ligand.pdb NUMERICAL_DERIVATIVES
 #DUMPDERIVATIVES ARG=je,jeN STRIDE=1 FILE=DERIV
 PRINT ARG=je STRIDE=1 FILE=COLVAR

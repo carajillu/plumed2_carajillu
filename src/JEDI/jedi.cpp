@@ -39,7 +39,7 @@
 #include <sstream>
 #include <iterator>
 #include <vector>
-#include <ctime>
+#include <chrono>
 #include <iostream>
 #include <iomanip>
 #include <sys/time.h>
@@ -65,7 +65,7 @@
 
 
 typedef double real;
-using namespace std;
+using namespace std::chrono;
 
 
 namespace PLMD {
@@ -82,6 +82,7 @@ private:
   getatoms ligand;
   int iteration=0;
   int clustride;
+  bool benchmark;
 public:
   explicit jedi(const ActionOptions&);
 // active methods:
@@ -99,11 +100,13 @@ void jedi::registerKeywords(Keywords& keys)
   keys.add("compulsory","GRID","PDB file containing the JEDI grid");
   keys.add("compulsory","LIGAND","PDB file containing a known ligand");
   keys.add("optional","CLUSTRIDE","Frequency in MD steps to write the best grid cluster xyz file (default: never)");
+  keys.addFlag("BENCHMARK",false,"Measure execution time");
 }
 
 jedi::jedi(const ActionOptions&ao):
   PLUMED_COLVAR_INIT(ao),
-  pbc(true)
+  pbc(true),
+  benchmark(false)
 {
   #pragma omp parallel
   {
@@ -129,6 +132,14 @@ jedi::jedi(const ActionOptions&ao):
   summary << "Step sum_activity Va JEDI" << endl;
   summary.close();
 
+  /* opening benchmark file */
+  parseFlag("BENCHMARK",benchmark);
+  if (benchmark)
+      cout << "Benchmark data will be printed in file performance.txt";
+  ofstream benchmark_file;
+  benchmark_file.open("benchmark.dat");
+  benchmark_file << "Step Init distance_matrix mindist activity clustering contacts hydrophobicity volume JEDI Total_minus_output Output Total" << endl;
+  benchmark_file.close();
   /*READING IN INPUT FILES*/
 
   //READ jedi.parameters here
@@ -215,7 +226,7 @@ void jedi::calculate() {
   /////////////////////////////////////////////////
   // Update Grid coordinates and Binding site    //
   /////////////////////////////////////////////////
-
+  auto start = high_resolution_clock::now(); 
   /*
   Update the positions of the ligand and find the displacement of the center of geometry
   */
@@ -223,7 +234,7 @@ void jedi::calculate() {
   ligand.atomnames_jedi.clear();
   ligand.positions.clear();
   int protein_natoms=protein.atomnumbers.size(); // This will be the first index of the ligand;
-  int total_natoms= protein_natoms+ligand.atomnumbers.size(); //This is the total number of requested atoms
+  int total_natoms=protein_natoms+ligand.atomnumbers.size(); //This is the total number of requested atoms
   for (unsigned k=protein_natoms; k<total_natoms;k++)
   {
     ligand.positions.push_back(getPosition(k));
@@ -242,6 +253,7 @@ void jedi::calculate() {
    IMPORTANT: The grid needs to be really BIG and symmetric (cubic, for example) in 
              order to minimise the effects of the lack of rotation
   */
+  
   for (unsigned i=0; i<grid.positions.size();i++)
   {
     grid.positions[i][0]+=displacement[0];
@@ -263,16 +275,18 @@ void jedi::calculate() {
   protein.select_atoms(protein.positions,grid.positions,protein.atomnames,params.r_max);
   
   
+
   //grid.select_atoms(grid.positions,protein.positions,grid.atomnames,params.r_max); //NOT YET
   
-  
+  auto init_time  = high_resolution_clock::now();
   /////////////////////////////////////////////////
   //                JEDI score                   //
   /////////////////////////////////////////////////
-  
+   
+
   distances distance_matrix;
   distance_matrix.compute_distance_matrix(protein.positions,grid.positions);
-
+  auto rmat_time  = high_resolution_clock::now();
   // Calculate activity
 
   mindist min_dist;
@@ -281,27 +295,26 @@ void jedi::calculate() {
                           distance_matrix.dr_matrix_dy,
                           distance_matrix.dr_matrix_dz,
                           params.theta);
+  auto mindist_time  = high_resolution_clock::now(); 
 
   activity activity;
   activity.compute_activities(min_dist.min_dist, 
                               min_dist.d_mindist_dx, min_dist.d_mindist_dy, min_dist.d_mindist_dz,
                               params.CC_mind,params.deltaCC,
                               params.r_hydro, params.deltar_hydro);
-
+  auto activity_time  = high_resolution_clock::now(); 
+  
   // Cluster active grid points
   //don't look at ligand atoms that are not close to the protein (will help discard useless shallow clusters)
   ligand.select_atoms(ligand.positions,protein.positions,protein.atomnames,params.r_max_clust);
   clustering clusters;
   clusters.cluster_grid(activity.activity_grid,grid.r_matrix,grid.neighbours,params.GP_max, params.resolution, activity.sum_activity, ligand.positions, grid.positions);
-  if ((clustride!=0) and (step%clustride==0))
-     clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_off_mindist,step);
-
   vector<unsigned> biggest_cluster=clusters.clusters[clusters.best_cluster_idx];
   activity.filter_activities(biggest_cluster);
   distance_matrix.filter_distance_matrix(biggest_cluster);
+  auto clustering_time  = high_resolution_clock::now(); 
 
-  // Calculate hydrophobicity of the biggest cluster
-
+  //Calculate contacts
   contacts_Soff contacts;
   contacts.compute_contacts_S_off(distance_matrix.r_matrix,
                                   distance_matrix.dr_matrix_dx,
@@ -309,7 +322,6 @@ void jedi::calculate() {
                                   distance_matrix.dr_matrix_dz,
                                   params.r_hydro, params.deltar_hydro);
 
- 
   contacts_sum contacts_sum;
   contacts_sum.compute_contacts_sum(contacts.contacts_matrix,
                                     contacts.d_contacts_dx,
@@ -317,11 +329,14 @@ void jedi::calculate() {
                                     contacts.d_contacts_dz,
                                     protein.atomnames_jedi);
 
+  auto contacts_time  = high_resolution_clock::now(); 
+
   hydrophobicity hydrophobicity;
   hydrophobicity.compute_hydrophobicity(contacts_sum.contacts_apolar,
                                         contacts_sum.d_contacts_apolar_dx,contacts_sum.d_contacts_apolar_dy,contacts_sum.d_contacts_apolar_dz,
                                         contacts_sum.contacts_total,
                                         contacts_sum.d_contacts_total_dx,contacts_sum.d_contacts_total_dy,contacts_sum.d_contacts_total_dz);
+  auto hydrophobicity_time  = high_resolution_clock::now(); 
 
   //Calculate the hydroactive volume of the biggest cluster
   Volume volume;
@@ -330,9 +345,9 @@ void jedi::calculate() {
   volume.compute_volume(volume.hydroactivity_grid,
                         volume.d_hydroactivity_dx,volume.d_hydroactivity_dy,volume.d_hydroactivity_dz,
                         params.resolution);
-  
-  
+  auto volume_time  = high_resolution_clock::now(); 
 
+  //Set JEDI and derivatives
   double Jedi=params.alpha*volume.volume;
   setValue(Jedi);
 
@@ -354,14 +369,55 @@ void jedi::calculate() {
   {
     setAtomsDerivatives(j,Vector(dJedi_dx[j],dJedi_dy[j],dJedi_dz[j]));
   }
+  auto jedi_time  = high_resolution_clock::now(); 
 
-  //PRINT OUTPUT FILE
-  iteration++;
-  ofstream wfile;
-  wfile.open("jedi_stats.dat",std::ios_base::app);
-  wfile << step <<" " << activity.sum_activity << " " << volume.volume << " " << Jedi << endl;
-  wfile.close();
+ 
+  if ((clustride!=0) and (step%clustride==0))
+  {
+   clusters.print_clusters(grid.positions,activity.activity_grid,activity.S_on_mindist, activity.S_off_mindist,step);
+   
+   //PRINT OUTPUT FILE
+   iteration++;
+   ofstream wfile;
+   wfile.open("jedi_stats.dat",std::ios_base::app);
+   wfile << step <<" " << activity.sum_activity << " " << volume.volume << " " << Jedi << endl;
+   wfile.close();
+  }
+
+auto print_time  = high_resolution_clock::now();
+if (benchmark)
+{
+  auto init_dt = duration_cast<microseconds>(init_time-start);
+  auto rmat_dt = duration_cast<microseconds>(rmat_time-init_time);
+  auto mindist_dt = duration_cast<microseconds>(mindist_time-rmat_time);
+  auto activity_dt = duration_cast<microseconds>(activity_time-mindist_time);
+  auto clustering_dt = duration_cast<microseconds>(clustering_time-activity_time);
+  auto contacts_dt = duration_cast<microseconds>(contacts_time-clustering_time);
+  auto hydro_dt = duration_cast<microseconds>(hydrophobicity_time-contacts_time);
+  auto volume_dt = duration_cast<microseconds>(volume_time-hydrophobicity_time);
+  auto jedi_dt = duration_cast<microseconds>(jedi_time-volume_time);
+  auto total_jedi_dt = duration_cast<microseconds>(jedi_time-start); //total excluding writing files
+  auto output_dt = duration_cast<microseconds>(print_time-jedi_time);
+  auto total_dt = duration_cast<microseconds>(print_time-start);  
+  
+  ofstream benchmark_file;
+  benchmark_file.open("benchmark.dat",std::ios_base::app);
+  benchmark_file << step <<" " << init_dt.count()
+                <<" " << rmat_dt.count()
+                <<" " << mindist_dt.count()
+                <<" " << activity_dt.count()
+                <<" " << clustering_dt.count()
+                <<" " << contacts_dt.count()
+                <<" " << hydro_dt.count()
+                <<" " << volume_dt.count()
+                <<" " << jedi_dt.count()
+                <<" " << total_jedi_dt.count()
+                <<" " << output_dt.count()
+                <<" " << total_dt.count()
+                << endl;
+  benchmark_file.close();
 }
 
-}
-}
+}//close calculator
+}//close colvar
+}//close PLMD
