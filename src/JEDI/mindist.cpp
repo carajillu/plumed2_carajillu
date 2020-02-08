@@ -19,11 +19,11 @@ This function returns the following vectors:
 3) vector<vector<double>> d_mindist_dy(protein_size,grid_size): same as 2) but for the y coordinate
 3) vector<vector<double>> d_mindist_dz(protein_size,grid_size): same as 2) but for the z coordinate
 */
-void mindist::compute_mindist(vector<vector<double>> r_matrix, 
-                              vector<vector<double>> dr_matrix_dx, 
-                              vector<vector<double>> dr_matrix_dy, 
-                              vector<vector<double>> dr_matrix_dz,
-                              double theta)
+void mindist::compute_mindist(vector<vector<double>> &r_matrix, 
+                              vector<vector<double>> &dr_matrix_dx, 
+                              vector<vector<double>> &dr_matrix_dy, 
+                              vector<vector<double>> &dr_matrix_dz,
+                              double &theta)
 {
   unsigned grid_size=r_matrix.size();
   unsigned protein_size=r_matrix[0].size();
