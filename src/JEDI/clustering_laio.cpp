@@ -199,7 +199,7 @@ void clustering::print_clusters(vector<PLMD::Vector> grid, vector<double> activi
         for (unsigned i=0; i<clusters[k].size();i++)
          {
           unsigned idx=clusters[k][i];
-          afile << std::fixed << std::setprecision(5) << i << " " << activity_grid[idx] << " " << S_on_mindist[idx] << " " << S_on_contacts[idx] << endl;
+          afile << std::fixed << std::setprecision(5) << i << " " << activity_grid[i] << " " << S_on_mindist[idx] << " " << S_on_contacts[idx] << endl; //activities are filtered, but S_on are not!
          }
         afile.close();
      }
