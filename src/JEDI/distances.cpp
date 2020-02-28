@@ -18,7 +18,7 @@ Regarding the calculation of the derivatives, it must be noted that the numerato
 is the coordinate of the atom minus the coordinate of the grid. This is important because the derivatives of JEDI
 are calculated with respect to the atom coordinates. This order guarantees the correct directionality.
 */
-void distances::compute_distance_matrix(vector<PLMD::Vector> protein, vector<PLMD::Vector> grid)
+void distances::compute_distance_matrix(vector<PLMD::Vector> &protein, vector<PLMD::Vector> &grid)
 {
   vector<double> r_ij_vec(protein.size(),0); //inside vector
   r_matrix=vector<vector<double>>(grid.size(),r_ij_vec);
@@ -64,7 +64,7 @@ void distances::compute_distance_matrix(vector<PLMD::Vector> protein, vector<PLM
   */
 }
 
-void distances::filter_distance_matrix(vector<unsigned> indices)
+void distances::filter_distance_matrix(vector<unsigned> &indices)
 {
   vector<double> row(r_matrix[0].size(),-1.);
   vector<vector<double>> r_matrix_new(r_matrix.size(),row);

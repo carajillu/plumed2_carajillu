@@ -9,3 +9,6 @@ ligand.pdb
 grid.pdb
 10atoms.pdb
 jedi.params
+cluster*
+benchmark.dat
+jedi_stats.dat
