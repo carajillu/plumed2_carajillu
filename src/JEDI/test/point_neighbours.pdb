@@ -1,0 +1,6 @@
+MODEL        0
+ATOM      1 GRI  GRI A   0     -65.505   8.737   6.031  1.00  0.00          Ge
+ATOM      2 GRI  GRI A   0     -64.005   8.737   6.031  1.00  0.00          Ge
+ATOM      3 GRI  GRI A   0     -65.505  10.237   4.531  1.00  0.00          Ge  
+ENDMDL
+END

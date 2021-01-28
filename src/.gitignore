@@ -46,7 +46,7 @@
 !/header.sh
 !/release.sh
 !/astyle.sh
-
+!/JEDI
 
 # And just ignore these files
 *.xxd
