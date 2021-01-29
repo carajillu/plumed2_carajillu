@@ -53,6 +53,10 @@ PRINT ARG=t STRIDE=100 FILE=COLVAR
 
 class Psidrug : public Colvar {
   bool pbc;
+  bool debug;
+  unsigned ngrid;
+  double rgrid;
+  double spacing;
 
 public:
   explicit Psidrug(const ActionOptions&);
@@ -65,27 +69,42 @@ PLUMED_REGISTER_ACTION(Psidrug,"PSIDRUG")
 
 void Psidrug::registerKeywords(Keywords& keys) {
   Colvar::registerKeywords(keys);
-  keys.addFlag("TEMPLATE_DEFAULT_OFF_FLAG",false,"flags that are by default not performed should be specified like this");
-  keys.addFlag("TEMPLATE_DEFAULT_ON_FLAG",true,"flags that are by default performed should be specified like this");
-  keys.add("compulsory","TEMPLATE_COMPULSORY","all compulsory keywords should be added like this with a description here");
-  keys.add("optional","TEMPLATE_OPTIONAL","all optional keywords that have input should be added like a description here");
-  keys.add("atoms","ATOMS","the keyword with which you specify what atoms to use should be added like this");
+  keys.addFlag("DEBUG",false,"Running in debug mode");
+  keys.add("atoms","ATOMS","Atoms to include in druggability calculations (start at 1)");
+  keys.add("optional","NGRID","Number of quasi-spherical grids to place in the system (default = 1)");
+  keys.add("optional","RGRID","Radius of the quasi-spherical grids that will be placed in the system (default = 0.3 nm)");
+  keys.add("optional","SPACING","Space between adjacent grid points (default = 0.1 nm)");
 }
 
 Psidrug::Psidrug(const ActionOptions&ao):
   PLUMED_COLVAR_INIT(ao),
-  pbc(true)
+  pbc(true),
+  debug(false)
 {
+  parseFlag("DEBUG",debug);
+  if (debug)
+     log.printf("RUNNING IN DEBUG MODE\n");
   vector<AtomNumber> atoms;
   parseAtomList("ATOMS",atoms);
-  if(atoms.size()!=2)
-    error("Number of specified atoms should be 2");
+
+  parse("NGRID",ngrid);
+  if (!ngrid) ngrid=1;
+
+  parse("RGRID",rgrid);
+  if (!rgrid) rgrid=0.3;
+
+  parse("SPACING",spacing);
+  if (!spacing) spacing=0.1;
+
   bool nopbc=!pbc;
   parseFlag("NOPBC",nopbc);
   pbc=!nopbc;
   checkRead();
 
-  log.printf("  between atoms %d %d\n",atoms[0].serial(),atoms[1].serial());
+  log.printf("  using atoms %d %d\n",atoms[0].serial(),atoms[1].serial());
+  log.printf("  using %d quasi-spherical grid(s)\n",ngrid);
+  log.printf("  of radius equal to %f nm\n",rgrid);
+  log.printf("  and spacing between adjacent points equal to %f nm\n",spacing);
   if(pbc) log.printf("  using periodic boundary conditions\n");
   else    log.printf("  without periodic boundary conditions\n");
 
