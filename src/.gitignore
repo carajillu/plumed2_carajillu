@@ -46,7 +46,7 @@
 !/header.sh
 !/release.sh
 !/astyle.sh
-
+!/PSIDRUG/
 
 # And just ignore these files
 *.xxd
