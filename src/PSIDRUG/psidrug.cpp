@@ -25,6 +25,9 @@
 #include <string>
 #include <cmath>
 
+//CV modules
+#include "grid.h"
+
 using namespace std;
 
 namespace PLMD {
@@ -101,7 +104,7 @@ Psidrug::Psidrug(const ActionOptions&ao):
   pbc=!nopbc;
   checkRead();
 
-  log.printf("  using atoms %d %d\n",atoms[0].serial(),atoms[1].serial());
+  log.printf("  using atoms %d to %d\n",atoms[0].serial(),atoms[atoms.size()-1].serial());
   log.printf("  using %d quasi-spherical grid(s)\n",ngrid);
   log.printf("  of radius equal to %f nm\n",rgrid);
   log.printf("  and spacing between adjacent points equal to %f nm\n",spacing);
@@ -111,6 +114,9 @@ Psidrug::Psidrug(const ActionOptions&ao):
   addValueWithDerivatives(); setNotPeriodic();
 
   requestAtoms(atoms);
+
+  grid grid_k(rgrid,spacing);
+
 }
 
 
