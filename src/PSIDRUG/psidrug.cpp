@@ -57,9 +57,11 @@ PRINT ARG=t STRIDE=100 FILE=COLVAR
 class Psidrug : public Colvar {
   bool pbc;
   bool debug;
-  unsigned ngrid;
-  double rgrid;
-  double spacing;
+  unsigned ngrid=0;
+  double rgrid=0;
+  double spacing=0;
+  double rtol=0;
+  vector<grid> grids;
 
 public:
   explicit Psidrug(const ActionOptions&);
@@ -77,6 +79,7 @@ void Psidrug::registerKeywords(Keywords& keys) {
   keys.add("optional","NGRID","Number of quasi-spherical grids to place in the system (default = 1)");
   keys.add("optional","RGRID","Radius of the quasi-spherical grids that will be placed in the system (default = 0.3 nm)");
   keys.add("optional","SPACING","Space between adjacent grid points (default = 0.1 nm)");
+  keys.add("optional","RTOL","Allowed maximum distance between the protein and the center of the grid at setup (default = 0.3 nm)");
 }
 
 Psidrug::Psidrug(const ActionOptions&ao):
@@ -87,6 +90,7 @@ Psidrug::Psidrug(const ActionOptions&ao):
   parseFlag("DEBUG",debug);
   if (debug)
      log.printf("RUNNING IN DEBUG MODE\n");
+  
   vector<AtomNumber> atoms;
   parseAtomList("ATOMS",atoms);
 
@@ -98,6 +102,9 @@ Psidrug::Psidrug(const ActionOptions&ao):
 
   parse("SPACING",spacing);
   if (!spacing) spacing=0.1;
+
+  parse("RTOL",rtol);
+  if (!rtol) rtol=0.3;
 
   bool nopbc=!pbc;
   parseFlag("NOPBC",nopbc);
@@ -115,27 +122,32 @@ Psidrug::Psidrug(const ActionOptions&ao):
 
   requestAtoms(atoms);
 
-  grid grid_k(rgrid,spacing);
+  for (unsigned i=0; i<ngrid; i++)
+  {
+   grids.push_back(grid(rgrid,spacing));
+  }
 
 }
 
 
 // calculator
 void Psidrug::calculate() {
-
-  Vector distance;
-  if(pbc) {
-    distance=pbcDistance(getPosition(0),getPosition(1));
-  } else {
-    distance=delta(getPosition(0),getPosition(1));
+  if (pbc) makeWhole();
+  int step=getStep();
+  if (step==0)
+  {
+   vector<Vector> atom_crd=getPositions();
+   for (unsigned i=0; i<grids.size();i++)
+   {
+     grids[i].place_random(atom_crd,rtol);
+     grids[i].print_grid(i,step);
+     }
   }
-  const double value=distance.modulo();
-  const double invvalue=1.0/value;
 
-  setAtomsDerivatives(0,-invvalue*distance);
-  setAtomsDerivatives(1,invvalue*distance);
-  setBoxDerivatives  (-invvalue*Tensor(distance,distance));
-  setValue           (value);
+  //setAtomsDerivatives(0,-invvalue*distance);
+  //setAtomsDerivatives(1,invvalue*distance);
+  //setBoxDerivatives  (-invvalue*Tensor(distance,distance));
+  //setValue           (value);
 }
 
 }

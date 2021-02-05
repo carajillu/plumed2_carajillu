@@ -24,7 +24,7 @@ class grid
     vector<double> d_Psigrid_dz;
  public:
     grid(double &radius, double &spacing);
-    void place_random(vector<PLMD::Vector> &atoms);
+    void place_random(vector<PLMD::Vector> &atom_crd, double rtol);
     void print_grid(int id, int step);
 };
 
