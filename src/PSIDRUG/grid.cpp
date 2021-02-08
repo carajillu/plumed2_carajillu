@@ -19,7 +19,7 @@ This initializes the grid object and fills it with
 a number of points determined by the radius and the
 spacing supplied to the plumed input file
 */
-grid::grid(double &radius, double &spacing)
+grid::grid(double &radius, double &spacing, unsigned &n_atoms)
 {
   vector<double> point_i(3,-radius);
   double radius2=pow(radius,2);
@@ -28,6 +28,8 @@ grid::grid(double &radius, double &spacing)
   double centre_y;
   double centre_z;
   double r=-radius;
+
+  // Generate the vector the grid will be built from (1D)
   vector <double> crd;
   while (r<=radius)
   {
@@ -35,6 +37,7 @@ grid::grid(double &radius, double &spacing)
     r+=spacing;
   }
 
+  // Build the grid
   double x;
   double y;
   double z;
@@ -47,7 +50,6 @@ grid::grid(double &radius, double &spacing)
       for (unsigned k=0; k<crd.size();k++)
       {
         z=crd[k];
-        //cout << x << " " << y << " " << z <<endl;
         norm2=pow(x,2)+pow(y,2)+pow(z,2);
         if (norm2<=radius2)
         {
@@ -77,13 +79,15 @@ grid::grid(double &radius, double &spacing)
                                                                            << centre_x << ","
                                                                            << centre_x << endl;
   
+  // Fill bsite_bin with zeros
+  for (unsigned j=0; j<n_atoms; j++) bsite_bin.push_back(0);
 }
 
 /*
 This places the grid at a random position close to the protein.
 What close means is decided by a parameter supplied in the input file
 */
-void grid::place_random(vector<PLMD::Vector> &atom_crd, double rtol)
+void grid::place_random(vector<PLMD::Vector> &atom_crd, double &rtol)
 {
   // Find minimum and maximum atom coordinates
    vector<double> min_crd(3,99999);
@@ -131,8 +135,57 @@ void grid::place_random(vector<PLMD::Vector> &atom_crd, double rtol)
     positions[i][1]+=displacement[1];
     positions[i][2]+=displacement[2];
   }
+  centre=displacement;
 }
 
+// Assign values to vector<unsigned> bsite_bin
+//bsite_bin[j]=1 if atom j is closer than or at RSITE nm from the center of the grid
+//biste_bool[j]=0 if atom j is further away than RSITE nm from the center of the grid
+void grid::assign_bsite_bin(vector<PLMD::Vector> &atom_crd, double &rsite)
+{
+ double rsite2=pow(rsite,2);
+ double r2;
+ for (unsigned j=0; j<atom_crd.size();j++)
+  {
+   r2=pow((centre[0]-atom_crd[j][0]),2)+pow((centre[1]-atom_crd[j][1]),2)+pow((centre[2]-atom_crd[j][2]),2);
+   if (r2<=rsite2)
+   {
+      bsite_bin[j]=1;
+   }
+   else
+      bsite_bin[j]=0;
+  }
+}
+
+// Center the grid at the center of geometry (not center of mass) of the bining site
+void grid::center_grid(vector<PLMD::Vector> &atom_crd)
+{
+ double x=0;
+ double y=0;
+ double z=0;
+ int total_bsite=0;
+ for (unsigned j=0; j<atom_crd.size();j++)
+ {
+  total_bsite+=bsite_bin[j]; // That gives us the total of elements in bsite_bin that are equal to 1
+  x+=bsite_bin[j]*atom_crd[j][0];
+  y+=bsite_bin[j]*atom_crd[j][1];
+  z+=bsite_bin[j]*atom_crd[j][2];
+ }
+ x/=total_bsite;
+ y/=total_bsite;
+ z/=total_bsite;
+ 
+ for (unsigned i=0; i<positions.size();i++)
+ {
+   positions[i][0]+=(x-centre[0]);
+   positions[i][1]+=(y-centre[1]);
+   positions[i][2]+=(z-centre[2]);
+ }
+ centre[0]=x;
+ centre[1]=y;
+ centre[2]=z;
+}
+// Output the i-th grid at the current time step in an xyz file
 void grid::print_grid(int id, int step)
    {
       string filename = "grid-";

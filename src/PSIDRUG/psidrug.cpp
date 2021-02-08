@@ -61,6 +61,7 @@ class Psidrug : public Colvar {
   double rgrid=0;
   double spacing=0;
   double rtol=0;
+  double rsite=0;
   vector<grid> grids;
 
 public:
@@ -80,6 +81,7 @@ void Psidrug::registerKeywords(Keywords& keys) {
   keys.add("optional","RGRID","Radius of the quasi-spherical grids that will be placed in the system (default = 0.3 nm)");
   keys.add("optional","SPACING","Space between adjacent grid points (default = 0.1 nm)");
   keys.add("optional","RTOL","Allowed maximum distance between the protein and the center of the grid at setup (default = 0.3 nm)");
+  keys.add("optional","RSITE","Allowed maximum distance from the edge of the grid for any given atom to be taken into account (default = 0.45 nm)");
 }
 
 Psidrug::Psidrug(const ActionOptions&ao):
@@ -106,6 +108,11 @@ Psidrug::Psidrug(const ActionOptions&ao):
   parse("RTOL",rtol);
   if (!rtol) rtol=0.3;
 
+  parse("RSITE",rsite);
+  if (!rsite) rsite=0.45;
+  // Apply correction to rsite so that bsite_bin can be measured from the center
+  rsite+=rgrid;
+
   bool nopbc=!pbc;
   parseFlag("NOPBC",nopbc);
   pbc=!nopbc;
@@ -121,27 +128,35 @@ Psidrug::Psidrug(const ActionOptions&ao):
   addValueWithDerivatives(); setNotPeriodic();
 
   requestAtoms(atoms);
+  unsigned n_atoms=atoms.size();
 
   for (unsigned i=0; i<ngrid; i++)
   {
-   grids.push_back(grid(rgrid,spacing));
+   grids.push_back(grid(rgrid,spacing,n_atoms));
   }
-
 }
 
 
 // calculator
 void Psidrug::calculate() {
   if (pbc) makeWhole();
+  vector<Vector> atom_crd=getPositions();
+
   int step=getStep();
-  if (step==0)
+  
+  for (unsigned i=0; i<grids.size();i++)
   {
-   vector<Vector> atom_crd=getPositions();
-   for (unsigned i=0; i<grids.size();i++)
-   {
+    if (step==0)
+    {
      grids[i].place_random(atom_crd,rtol);
-     grids[i].print_grid(i,step);
-     }
+     grids[i].assign_bsite_bin(atom_crd,rsite);
+    }
+    else
+    {
+     grids[i].center_grid(atom_crd);
+     grids[i].assign_bsite_bin(atom_crd,rsite);
+    }
+    grids[i].print_grid(i,step);
   }
 
   //setAtomsDerivatives(0,-invvalue*distance);
