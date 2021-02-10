@@ -49,7 +49,7 @@ The second CV, the order parameter, must be used when one aims at studying a fir
 
 The algorithm will explore the free energy at each temperature up to a predefined free
  energy threshold \f$\epsilon\f$ specified through the keyword THRESHOLD (in kT units).
-If only the energy is biased, i.e. no phase transition is considered, then TRESHOLD can be set to 1.
+If only the energy is biased, i.e. no phase transition is considered, then THRESHOLD can be set to 1.
 If also an order parameter is used then the THRESHOLD should be greater than the barrier for the transformation in kT.
 For small systems undergoing a freezing transition THRESHOLD is typically between 20 and 50.
 
@@ -58,12 +58,9 @@ The advantage with respect to Wang-Landau is that instead of sampling the potent
 
 The algorithm works as follows.
 The target distribution for the potential energy is chosen to be:
-\f[
-p(E)= \begin{cases}
-         \frac{1}{E_2-E_1} & \mathrm{if} \quad E_1<E<E_2 \\
-         0 & \mathrm{otherwise}
-      \end{cases}
-\f]
+
+MISSING EQUATION TO BE FIXED
+
 where the energy limits \f$E_1\f$ and \f$E_2\f$ are yet to be determined.
 Clearly the interval \f$E_1–E_2\f$ chosen is related to the interval of temperatures \f$T_1-T_2\f$.
 To link these two intervals we make use of the following relation:
@@ -164,7 +161,7 @@ void TD_Multicanonical::registerKeywords(Keywords& keys) {
   keys.add("compulsory","MIN_TEMP","Minimum temperature.");
   keys.add("compulsory","MAX_TEMP","Maximum temperature.");
   keys.add("optional","STEPS_TEMP","Number of temperature steps. Only for the 2D version, i.e. energy and order parameter.");
-  keys.add("optional","SIGMA","The standard deviation parameters of the Gaussian kernels used for smoothing the target distribution. One value must be specified for each argument, i.e. one value per CV. A value of 0.0 means that no smooting is performed, this is the default behavior.");
+  keys.add("optional","SIGMA","The standard deviation parameters of the Gaussian kernels used for smoothing the target distribution. One value must be specified for each argument, i.e. one value per CV. A value of 0.0 means that no smoothing is performed, this is the default behavior.");
 }
 
 

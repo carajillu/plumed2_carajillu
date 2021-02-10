@@ -1,5 +1,5 @@
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   Copyright (c) 2015-2019 The plumed team
+   Copyright (c) 2015-2020 The plumed team
    (see the PEOPLE file at the root of the distribution for a list of names)
 
    See http://www.plumed.org for more information.
@@ -67,7 +67,7 @@ namespace colvar {
  \plumedfile
  #SETTINGS MOLFILE=regtest/basic/rt65/AA.pdb
  MOLINFO STRUCTURE=rna.pdb MOLTYPE=rna
- PUCKERING ATOMS=@sugar-3 LABEL=puck
+ PUCKERING ATOMS=@sugar-2 LABEL=puck
  PRINT ARG=puck.phs FILE=COLVAR
  \endplumedfile
 

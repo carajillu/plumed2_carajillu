@@ -564,7 +564,7 @@ int MD_LinearExpansionPES::main( FILE* in, FILE* out, PLMD::Communicator& pc) {
   for(unsigned int k=0; k<dim; k++) {
     positions[0][k] = initPos[inter.Get_rank()][k];
     if(periodic[k]) {
-      positions[0][k] = positions[0][k] - floor(positions[0][k]/interval_range[k]+0.5)*interval_range[k];
+      positions[0][k] = positions[0][k] - floor((positions[0][k]-interval_min[k])/interval_range[k])*interval_range[k];
     }
     else {
       if(positions[0][k]>interval_max[k]) {positions[0][k]=interval_max[k];}
@@ -614,7 +614,7 @@ int MD_LinearExpansionPES::main( FILE* in, FILE* out, PLMD::Communicator& pc) {
       positions[0][k] = positions[0][k] + tstep*velocities[0][k];
 
       if(periodic[k]) {
-        positions[0][k] = positions[0][k] - floor(positions[0][k]/interval_range[k]+0.5)*interval_range[k];
+        positions[0][k] = positions[0][k] - floor((positions[0][k]-interval_min[k])/interval_range[k])*interval_range[k];
       }
       else {
         if(positions[0][k]>interval_max[k]) {
@@ -669,7 +669,7 @@ int MD_LinearExpansionPES::main( FILE* in, FILE* out, PLMD::Communicator& pc) {
   if(plumed) {delete plumed;}
   if(plumed_bf) {delete plumed_bf;}
   if(potential_expansion_pntr) {delete potential_expansion_pntr;}
-  if(coeffs_pntr) {delete coeffs_pntr;}
+  delete coeffs_pntr;
   for(unsigned int i=0; i<args.size(); i++) {delete args[i];}
   args.clear();
   //printf("Rank: %d, Size: %d \n", pc.Get_rank(), pc.Get_size() );

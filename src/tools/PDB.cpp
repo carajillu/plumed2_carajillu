@@ -1,5 +1,5 @@
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   Copyright (c) 2011-2019 The plumed team
+   Copyright (c) 2011-2020 The plumed team
    (see the PEOPLE file at the root of the distribution for a list of names)
 
    See http://www.plumed.org for more information.
@@ -342,6 +342,7 @@ bool PDB::readFromFilepointer(FILE *fp,bool naturalUnits,double scale) {
         int result;
         auto trimmed=serial;
         Tools::trim(trimmed);
+        while(trimmed.length()<5) trimmed = std::string(" ") + trimmed;
         const char* errmsg = h36::hy36decode(5, trimmed.c_str(),trimmed.length(), &result);
         if(errmsg) {
           std::string msg(errmsg);

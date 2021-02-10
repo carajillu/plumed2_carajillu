@@ -1,5 +1,5 @@
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   Copyright (c) 2013-2019 The plumed team
+   Copyright (c) 2013-2020 The plumed team
    (see the PEOPLE file at the root of the distribution for a list of names)
 
    See http://www.plumed.org for more information.
@@ -51,6 +51,9 @@ void SingleDomainRMSD::setReferenceAtoms( const std::vector<Vector>& conf, const
   displace.resize( conf.size() ); atom_der_index.resize( conf.size() );
   double wa=0, wd=0;
   for(unsigned i=0; i<conf.size(); ++i) { wa+=align_in[i]; wd+=displace_in[i]; }
+
+  plumed_massert(wa>epsilon,"It looks like weights used for alignment are zero. Check your reference PDB file.");
+  plumed_massert(wd>epsilon,"It looks like weights used for displacement are zero. Check your reference PDB file.");
 
   Vector center;
   for(unsigned i=0; i<conf.size(); ++i) {
