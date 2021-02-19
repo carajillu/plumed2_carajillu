@@ -51,7 +51,7 @@ grid::grid(double &radius, double &spacing, unsigned &n_atoms)
       {
         z=crd[k];
         norm2=pow(x,2)+pow(y,2)+pow(z,2);
-        if (norm2<=radius2)
+        if (norm2<=(radius2+spacing/2))
         {
           point_i[0]=x;
           point_i[1]=y;
@@ -74,6 +74,8 @@ grid::grid(double &radius, double &spacing, unsigned &n_atoms)
   centre.push_back(centre_y);
   centre_z/=positions.size();
   centre.push_back(centre_z);
+  
+  size_grid=positions.size();
 
   cout << "Grid has " << positions.size() << " points and is centered at " << centre_x << "," 
                                                                            << centre_x << ","
@@ -204,3 +206,28 @@ void grid::print_grid(int id, int step)
       wfile.close();
      
    }
+
+void grid::init_psigrid(unsigned &n_atoms)
+{
+  PsiGrid=0;
+  d_Psigrid_dx=vector<double>(n_atoms,0);
+  d_Psigrid_dy=vector<double>(n_atoms,0);
+  d_Psigrid_dz=vector<double>(n_atoms,0);
+}
+
+void grid::add_activity(double &activity,
+                        vector<double> &d_activity_dx,
+                        vector<double> &d_activity_dy,
+                        vector<double> &d_activity_dz)
+{
+  PsiGrid+=activity;
+  transform (d_Psigrid_dx.begin(), d_Psigrid_dx.end(), 
+             d_activity_dx.begin(), d_Psigrid_dx.begin(), 
+             std::plus<double>());
+  transform (d_Psigrid_dy.begin(), d_Psigrid_dy.end(), 
+             d_activity_dy.begin(), d_Psigrid_dy.begin(), 
+             std::plus<double>());
+  transform (d_Psigrid_dz.begin(), d_Psigrid_dz.end(), 
+             d_activity_dz.begin(), d_Psigrid_dz.begin(), 
+             std::plus<double>());
+}

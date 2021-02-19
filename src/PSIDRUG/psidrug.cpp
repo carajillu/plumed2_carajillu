@@ -27,6 +27,7 @@
 
 //CV modules
 #include "grid.h"
+#include "kernel.h"
 
 using namespace std;
 
@@ -62,7 +63,13 @@ class Psidrug : public Colvar {
   double spacing=0;
   double rtol=0;
   double rsite=0;
+  unsigned n_atoms;
   vector<grid> grids;
+  vector<kernel>kernels;
+  double PsiDrug;
+  vector<double> d_PsiDrug_dx;
+  vector<double> d_PsiDrug_dy;
+  vector<double> d_PsiDrug_dz;
 
 public:
   explicit Psidrug(const ActionOptions&);
@@ -128,37 +135,64 @@ Psidrug::Psidrug(const ActionOptions&ao):
   addValueWithDerivatives(); setNotPeriodic();
 
   requestAtoms(atoms);
-  unsigned n_atoms=atoms.size();
+  n_atoms=atoms.size();
 
   for (unsigned i=0; i<ngrid; i++)
   {
    grids.push_back(grid(rgrid,spacing,n_atoms));
+   kernels.push_back(kernel(n_atoms));
   }
+
+  PsiDrug=0;
+  d_PsiDrug_dx=vector<double>(n_atoms,0);
+  d_PsiDrug_dy=vector<double>(n_atoms,0);
+  d_PsiDrug_dz=vector<double>(n_atoms,0);
 }
 
 
 // calculator
 void Psidrug::calculate() {
   if (pbc) makeWhole();
-  vector<Vector> atom_crd=getPositions();
-
+  vector<Vector> atom_crd=getPositions(); 
   int step=getStep();
-  
-  for (unsigned i=0; i<grids.size();i++)
+  PsiDrug=0;
+
+  for (unsigned k=0; k<grids.size();k++)
   {
+    //Update Grid Coordinates//
     if (step==0)
     {
-     grids[i].place_random(atom_crd,rtol);
-     grids[i].assign_bsite_bin(atom_crd,rsite);
+     grids[k].place_random(atom_crd,rtol);
+     grids[k].assign_bsite_bin(atom_crd,rsite);
     }
-    else
+    grids[k].center_grid(atom_crd);
+    grids[k].assign_bsite_bin(atom_crd,rsite);
+    grids[k].print_grid(k,step);
+
+    grids[k].init_psigrid(n_atoms);
+    for (unsigned i=0; i<grids[k].size_grid;i++)
     {
-     grids[i].center_grid(atom_crd);
-     grids[i].assign_bsite_bin(atom_crd,rsite);
+     kernels[k].calculate_activity(grids[k].positions[i],atom_crd,grids[k].bsite_bin);
+     grids[k].add_activity(kernels[k].activity,
+                           kernels[k].d_activity_dx,
+                           kernels[k].d_activity_dy,
+                           kernels[k].d_activity_dz);
     }
-    grids[i].print_grid(i,step);
+
+    PsiDrug+=grids[k].PsiGrid;
+    for (unsigned j=0;j<n_atoms;j++)
+    {
+      d_PsiDrug_dx[j]+=grids[k].d_Psigrid_dx[j];
+      d_PsiDrug_dy[j]+=grids[k].d_Psigrid_dy[j];
+      d_PsiDrug_dz[j]+=grids[k].d_Psigrid_dz[j];
+    }
   }
 
+  setValue(PsiDrug);
+  for (unsigned j=0; j<n_atoms;j++)
+  {
+    setAtomsDerivatives(j,Vector(d_PsiDrug_dx[j],d_PsiDrug_dy[j],d_PsiDrug_dz[j]));
+  }
   //setAtomsDerivatives(0,-invvalue*distance);
   //setAtomsDerivatives(1,invvalue*distance);
   //setBoxDerivatives  (-invvalue*Tensor(distance,distance));
