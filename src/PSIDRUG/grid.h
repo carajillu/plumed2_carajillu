@@ -10,10 +10,13 @@ using namespace std;
 class grid
 {
  private:
-    vector<double> centre; // Centre of the grid
+    
      
  public:
-    grid(double &radius, double &spacing, unsigned &n_atoms);
+    grid(unsigned n_atoms);
+    vector<double> centre; // Centre of the grid
+    void grid_read(string grid_file);
+    void grid_setup(double &radius, double &spacing, unsigned &n_atoms);
     unsigned size_grid;
     //bsite_bin[j]=1 if atom j is closer than or at RSITE nm from the center of the grid
     //biste_bool[j]=0 if atom j is further away than RSITE nm from the center of the grid

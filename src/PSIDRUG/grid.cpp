@@ -9,17 +9,75 @@ and the atom name, will be used later on for apolarpolar purposes.
 #include <sstream>
 #include <string>
 #include <random>
+#include <iterator>
 
 #include "core/ActionAtomistic.h"
 #include "grid.h"
 
 using namespace std;
 /*
-This initializes the grid object and fills it with 
-a number of points determined by the radius and the
-spacing supplied to the plumed input file
+Initialise the grid object
 */
-grid::grid(double &radius, double &spacing, unsigned &n_atoms)
+grid::grid(unsigned n_atoms)
+{
+ // Fill bsite_bin with zeros
+ bsite_bin=vector<unsigned>(n_atoms,1);
+ PsiGrid=0;
+ d_Psigrid_dx=vector<double>(n_atoms,0);
+ d_Psigrid_dy=vector<double>(n_atoms,0);
+ d_Psigrid_dz=vector<double>(n_atoms,0);
+}
+
+
+/*
+Reads a grid from an xyz file and skip the coordinate
+generation step. Only used for debugging at the moment
+but this could change in the future (maybe post-processing?)
+*/
+
+void grid::grid_read(string grid_file)
+{
+ cout << "Reading Grid" << endl;
+ centre=vector<double>(3,0);
+
+ vector<double> point_crd(3,0);
+ FILE* fp=fopen(grid_file.c_str(),"r");
+ string line;
+ int linum=0;
+ while (PLMD::Tools::getline(fp, line))
+ {
+  if (linum<2) //skip first 2 lines of xyz file
+  {
+  linum++;
+  continue;
+  }
+  istringstream iss(line);
+  std::istream_iterator<string> beg(iss), end;
+  vector<string> tokens(beg, end);
+  if (tokens.size()<4) continue;
+  point_crd[0]=atof(tokens[1].c_str())/10;
+  point_crd[1]=atof(tokens[2].c_str())/10;
+  point_crd[2]=atof(tokens[3].c_str())/10;
+  positions.push_back(point_crd);
+
+  centre[0]+=point_crd[0];
+  centre[1]+=point_crd[1];
+  centre[2]+=point_crd[2];
+ }
+
+ centre[0]/=positions.size();
+ centre[1]/=positions.size();
+ centre[2]/=positions.size();
+
+ size_grid=positions.size();
+}
+
+/*
+Sets up the grid object with coordinates, center and 
+initialises bsite_bin. All is determined by the radius 
+and the spacing supplied to the plumed input file
+*/
+void grid::grid_setup(double &radius, double &spacing, unsigned &n_atoms)
 {
   vector<double> point_i(3,-radius);
   double radius2=pow(radius,2);
@@ -77,14 +135,10 @@ grid::grid(double &radius, double &spacing, unsigned &n_atoms)
   
   size_grid=positions.size();
 
-  cout << "Grid has " << positions.size() << " points and is centered at " << centre_x << "," 
+  std::cout << "Grid has " << positions.size() << " points and is centered at " << centre_x << "," 
                                                                            << centre_x << ","
                                                                            << centre_x << endl;
-  
-  // Fill bsite_bin with zeros
-  for (unsigned j=0; j<n_atoms; j++) bsite_bin.push_back(0);
 }
-
 /*
 This places the grid at a random position close to the protein.
 What close means is decided by a parameter supplied in the input file

@@ -37,6 +37,7 @@ class kernel
 
  public:
     kernel(unsigned &n_atoms);
+    void reset();
     void calculate_activity(vector<double> &gridpoint_crd, 
                             vector<PLMD::Vector> &atom_crd,
                             vector<unsigned> &bsite_bin);

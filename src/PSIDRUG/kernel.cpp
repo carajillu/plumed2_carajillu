@@ -16,6 +16,23 @@ kernel::kernel(unsigned &n_atoms)
  d_activity_dz=vector<double>(n_atoms,0);
 }
 
+// Replace all the components of the vectors with zeros so that
+// the same kernel can be used for another grid point
+void kernel::reset()
+{
+ activity=0;
+ for (unsigned j=0;j<d_activity_dx.size();j++)
+  {
+   r[j]=0;
+   dr_dx[j]=0;
+   dr_dy[j]=0;
+   dr_dz[j]=0;
+   d_activity_dx[j]=0;
+   d_activity_dy[j]=0;
+   d_activity_dz[j]=0;
+  }
+}
+
 void kernel::calculate_distance(vector<double> &gridpoint_crd, 
                                 vector<PLMD::Vector> &atom_crd, 
                                 vector<unsigned> &bsite_bin)
@@ -31,9 +48,9 @@ void kernel::calculate_distance(vector<double> &gridpoint_crd,
         continue;
     }
     r[j]=sqrt(pow((atom_crd[j][0]-gridpoint_crd[0]),2)+
-           pow((atom_crd[j][1]-gridpoint_crd[1]),2)+
-           pow((atom_crd[j][2]-gridpoint_crd[2]),2));
-
+              pow((atom_crd[j][1]-gridpoint_crd[1]),2)+
+              pow((atom_crd[j][2]-gridpoint_crd[2]),2));
+    
     dr_dx[j]=(atom_crd[j][0]-gridpoint_crd[0])/r[j];
     dr_dy[j]=(atom_crd[j][1]-gridpoint_crd[1])/r[j];
     dr_dz[j]=(atom_crd[j][2]-gridpoint_crd[2])/r[j];
@@ -44,12 +61,15 @@ void kernel::calculate_activity(vector<double> &gridpoint_crd,
                                 vector<PLMD::Vector> &atom_crd,
                                 vector<unsigned> &bsite_bin)
 {
+  reset();
   calculate_distance(gridpoint_crd,atom_crd,bsite_bin);
   for (unsigned j=0;j<atom_crd.size();j++)
   {
    activity+=r[j];
    d_activity_dx[j]+=dr_dx[j];
    d_activity_dy[j]+=dr_dy[j];
-   d_activity_dz[j]+=dr_dz[j];
+   d_activity_dz[j]+=dr_dz[j];;
   }
+  
+  
 }

@@ -23,6 +23,7 @@
 #include "colvar/ActionRegister.h"
 
 #include <string>
+#include <iostream>
 #include <cmath>
 
 //CV modules
@@ -58,6 +59,7 @@ PRINT ARG=t STRIDE=100 FILE=COLVAR
 class Psidrug : public Colvar {
   bool pbc;
   bool debug;
+  string grid_file;
   unsigned ngrid=0;
   double rgrid=0;
   double spacing=0;
@@ -70,6 +72,7 @@ class Psidrug : public Colvar {
   vector<double> d_PsiDrug_dx;
   vector<double> d_PsiDrug_dy;
   vector<double> d_PsiDrug_dz;
+  int numstep=0;
 
 public:
   explicit Psidrug(const ActionOptions&);
@@ -89,6 +92,7 @@ void Psidrug::registerKeywords(Keywords& keys) {
   keys.add("optional","SPACING","Space between adjacent grid points (default = 0.1 nm)");
   keys.add("optional","RTOL","Allowed maximum distance between the protein and the center of the grid at setup (default = 0.3 nm)");
   keys.add("optional","RSITE","Allowed maximum distance from the edge of the grid for any given atom to be taken into account (default = 0.45 nm)");
+  keys.add("optional","GRID_FILE","XYZ file containing a sample grid. Used for debug purposes.");
 }
 
 Psidrug::Psidrug(const ActionOptions&ao):
@@ -98,8 +102,15 @@ Psidrug::Psidrug(const ActionOptions&ao):
 {
   parseFlag("DEBUG",debug);
   if (debug)
+  {
      log.printf("RUNNING IN DEBUG MODE\n");
-  
+     parse("GRID_FILE",grid_file);
+     if(grid_file=="")
+        {
+          log.printf("Please specify a grid xyz file if you are running in debug mode");
+          exit(0);
+        }
+  }
   vector<AtomNumber> atoms;
   parseAtomList("ATOMS",atoms);
 
@@ -132,17 +143,28 @@ Psidrug::Psidrug(const ActionOptions&ao):
   if(pbc) log.printf("  using periodic boundary conditions\n");
   else    log.printf("  without periodic boundary conditions\n");
 
-  addValueWithDerivatives(); setNotPeriodic();
+  addValueWithDerivatives(); 
+  setNotPeriodic();
 
   requestAtoms(atoms);
   n_atoms=atoms.size();
 
+  // Setup grid(s)
   for (unsigned i=0; i<ngrid; i++)
   {
-   grids.push_back(grid(rgrid,spacing,n_atoms));
+   grids.push_back(grid(n_atoms));
+   if (debug)
+   {
+    grids[i].grid_read(grid_file);
+   }
+   else
+   {
+   grids[i].grid_setup(rgrid,spacing,n_atoms);
+   }
    kernels.push_back(kernel(n_atoms));
   }
 
+  //Initialise Psidrug and its derivatives
   PsiDrug=0;
   d_PsiDrug_dx=vector<double>(n_atoms,0);
   d_PsiDrug_dy=vector<double>(n_atoms,0);
@@ -153,8 +175,9 @@ Psidrug::Psidrug(const ActionOptions&ao):
 // calculator
 void Psidrug::calculate() {
   if (pbc) makeWhole();
-  vector<Vector> atom_crd=getPositions(); 
+  vector<Vector> atom_crd=getPositions();
   int step=getStep();
+  numstep++;
   PsiDrug=0;
 
   for (unsigned k=0; k<grids.size();k++)
@@ -162,13 +185,23 @@ void Psidrug::calculate() {
     //Update Grid Coordinates//
     if (step==0)
     {
-     grids[k].place_random(atom_crd,rtol);
-     grids[k].assign_bsite_bin(atom_crd,rsite);
+      if (!debug) grids[k].place_random(atom_crd,rtol);
+      grids[k].assign_bsite_bin(atom_crd,rsite);
     }
-    grids[k].center_grid(atom_crd);
-    grids[k].assign_bsite_bin(atom_crd,rsite);
+    /*
+    This if block is here just to debug derivatives
+    The grid update bugs when trying to calculate the derivatives of the box
+    Need to ask (Giovanni?) how to get around that and what impact it may
+    have on simulations
+    */
+    if (numstep<=n_atoms*3)
+    {
+      grids[k].center_grid(atom_crd);
+      grids[k].assign_bsite_bin(atom_crd,rsite);
+    }
+ 
+    //if (debug) 
     grids[k].print_grid(k,step);
-
     grids[k].init_psigrid(n_atoms);
     for (unsigned i=0; i<grids[k].size_grid;i++)
     {
@@ -178,7 +211,6 @@ void Psidrug::calculate() {
                            kernels[k].d_activity_dy,
                            kernels[k].d_activity_dz);
     }
-
     PsiDrug+=grids[k].PsiGrid;
     for (unsigned j=0;j<n_atoms;j++)
     {
@@ -187,16 +219,14 @@ void Psidrug::calculate() {
       d_PsiDrug_dz[j]+=grids[k].d_Psigrid_dz[j];
     }
   }
-
-  setValue(PsiDrug);
+  
   for (unsigned j=0; j<n_atoms;j++)
   {
     setAtomsDerivatives(j,Vector(d_PsiDrug_dx[j],d_PsiDrug_dy[j],d_PsiDrug_dz[j]));
   }
-  //setAtomsDerivatives(0,-invvalue*distance);
-  //setAtomsDerivatives(1,invvalue*distance);
-  //setBoxDerivatives  (-invvalue*Tensor(distance,distance));
-  //setValue           (value);
+  setBoxDerivativesNoPbc();
+  setValue(PsiDrug);
+  cout << "Step " << numstep << "PsiDrug = " << PsiDrug << endl;
 }
 
 }
