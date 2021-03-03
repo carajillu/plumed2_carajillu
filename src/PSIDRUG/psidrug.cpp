@@ -59,6 +59,7 @@ PRINT ARG=t STRIDE=100 FILE=COLVAR
 class Psidrug : public Colvar {
   bool pbc;
   bool debug;
+  vector<AtomNumber> atoms;
   string grid_file;
   unsigned ngrid=0;
   double rgrid=0;
@@ -100,6 +101,13 @@ Psidrug::Psidrug(const ActionOptions&ao):
   pbc(true),
   debug(false)
 {
+  addValueWithDerivatives(); 
+  setNotPeriodic();
+
+  bool nopbc=!pbc;
+  parseFlag("NOPBC",nopbc);
+  pbc=!nopbc;
+
   parseFlag("DEBUG",debug);
   if (debug)
   {
@@ -111,64 +119,62 @@ Psidrug::Psidrug(const ActionOptions&ao):
           exit(0);
         }
   }
-  vector<AtomNumber> atoms;
+
   parseAtomList("ATOMS",atoms);
+  requestAtoms(atoms);
+  n_atoms=atoms.size();
+
+  cout << "--------- Initialising Psidrug Collective Variable -----------" << endl;
 
   parse("NGRID",ngrid);
   if (!ngrid) ngrid=1;
+  cout << "Using " << ngrid << " quasi-spherical grid(s)" << endl;
 
   parse("RGRID",rgrid);
   if (!rgrid) rgrid=0.3;
+  cout << " of radius equal to " << rgrid << " nm." << endl << endl;
 
   parse("SPACING",spacing);
   if (!spacing) spacing=0.1;
+  cout << "Spacing between adjacent grid points is equal to" << spacing << " nm." << endl << endl;
 
   parse("RTOL",rtol);
   if (!rtol) rtol=0.3;
+  cout << "Starting at a maximum distance of " << rtol << " nm from any protein atoms." << endl<< endl;
 
   parse("RSITE",rsite);
   if (!rsite) rsite=0.45;
   // Apply correction to rsite so that bsite_bin can be measured from the center
   rsite+=rgrid;
+  cout << "Atoms further away than " << rsite << " from the center of the grid will not contribute to score" << endl<< endl;
 
-  bool nopbc=!pbc;
-  parseFlag("NOPBC",nopbc);
-  pbc=!nopbc;
   checkRead();
-
-  log.printf("  using atoms %d to %d\n",atoms[0].serial(),atoms[atoms.size()-1].serial());
-  log.printf("  using %d quasi-spherical grid(s)\n",ngrid);
-  log.printf("  of radius equal to %f nm\n",rgrid);
-  log.printf("  and spacing between adjacent points equal to %f nm\n",spacing);
-  if(pbc) log.printf("  using periodic boundary conditions\n");
-  else    log.printf("  without periodic boundary conditions\n");
-
-  addValueWithDerivatives(); 
-  setNotPeriodic();
-
-  requestAtoms(atoms);
-  n_atoms=atoms.size();
-
-  // Setup grid(s)
+  cout << "Initialising grids and kernels..." << endl;
   for (unsigned i=0; i<ngrid; i++)
   {
    grids.push_back(grid(n_atoms));
    if (debug)
-   {
-    grids[i].grid_read(grid_file);
-   }
+    {
+     cout << "   Reading grid "<< i << endl;
+     grids[i].grid_read(grid_file);
+    }
    else
-   {
-   grids[i].grid_setup(rgrid,spacing,n_atoms);
-   }
+    {
+      cout << " Initialising grid "<< i << endl;
+      grids[i].grid_setup(rgrid,spacing,n_atoms);
+    }
+   cout << "   Initialising kernel " << i << endl;
    kernels.push_back(kernel(n_atoms));
   }
+  cout << "...Grids and kernels initialised" << endl<<endl;
 
-  //Initialise Psidrug and its derivatives
+  cout << "Initialisng Psidrug and its derivatives" << endl;
   PsiDrug=0;
   d_PsiDrug_dx=vector<double>(n_atoms,0);
   d_PsiDrug_dy=vector<double>(n_atoms,0);
   d_PsiDrug_dz=vector<double>(n_atoms,0);
+
+  cout << "--------- Initialisation complete -----------" << endl;
 }
 
 
