@@ -30,7 +30,7 @@ class grid
     vector<double> d_Psigrid_dx;
     vector<double> d_Psigrid_dy;
     vector<double> d_Psigrid_dz;
-    void init_psigrid(unsigned &n_atoms);
+    void reset_psigrid();
     void add_activity(double &activity,
                       vector<double> &d_activity_dx,
                       vector<double> &d_activity_dy,

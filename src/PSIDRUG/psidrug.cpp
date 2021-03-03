@@ -194,7 +194,7 @@ void Psidrug::calculate() {
     Need to ask (Giovanni?) how to get around that and what impact it may
     have on simulations
     */
-    if (numstep<=n_atoms*3)
+    if (numstep<=n_atoms*3 and checkNumericalDerivatives())
     {
       grids[k].center_grid(atom_crd);
       grids[k].assign_bsite_bin(atom_crd,rsite);
@@ -202,7 +202,7 @@ void Psidrug::calculate() {
  
     //if (debug) 
     grids[k].print_grid(k,step);
-    grids[k].init_psigrid(n_atoms);
+    grids[k].reset_psigrid();
     for (unsigned i=0; i<grids[k].size_grid;i++)
     {
      kernels[k].calculate_activity(grids[k].positions[i],atom_crd,grids[k].bsite_bin);

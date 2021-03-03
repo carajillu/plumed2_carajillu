@@ -16,7 +16,8 @@ and the atom name, will be used later on for apolarpolar purposes.
 
 using namespace std;
 /*
-Initialise the grid object
+Initialises the grid object with bsite_bin, PsiGrid and its derivatives
+All values are initialised to zero
 */
 grid::grid(unsigned n_atoms)
 {
@@ -27,7 +28,6 @@ grid::grid(unsigned n_atoms)
  d_Psigrid_dy=vector<double>(n_atoms,0);
  d_Psigrid_dz=vector<double>(n_atoms,0);
 }
-
 
 /*
 Reads a grid from an xyz file and skip the coordinate
@@ -261,12 +261,15 @@ void grid::print_grid(int id, int step)
      
    }
 
-void grid::init_psigrid(unsigned &n_atoms)
+void grid::reset_psigrid()
 {
   PsiGrid=0;
-  d_Psigrid_dx=vector<double>(n_atoms,0);
-  d_Psigrid_dy=vector<double>(n_atoms,0);
-  d_Psigrid_dz=vector<double>(n_atoms,0);
+  for (unsigned j=0; j<d_Psigrid_dx.size();j++)
+  {
+    d_Psigrid_dx[j]=0;
+    d_Psigrid_dy[j]=0;
+    d_Psigrid_dz[j]=0;
+  }
 }
 
 void grid::add_activity(double &activity,

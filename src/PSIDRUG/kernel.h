@@ -26,9 +26,10 @@ class kernel
 
     vector<double> exp_r;
     double CC;
-    vector<double> d_CC_dx;
-    vector<double> d_CC_dy;
-    vector<double> d_CC_dz;
+    vector<double> dCC_dx;
+    vector<double> dCC_dy;
+    vector<double> dCC_dz;
+    void calculate_CC();
 
     double HC;
     vector<double> d_HC_dx;

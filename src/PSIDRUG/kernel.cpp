@@ -10,6 +10,12 @@ kernel::kernel(unsigned &n_atoms)
  dr_dy=vector<double>(n_atoms,0);
  dr_dz=vector<double>(n_atoms,0);
 
+ exp_r=vector<double>(n_atoms,0);
+ CC=0;
+ dCC_dx=vector<double>(n_atoms,0);
+ dCC_dy=vector<double>(n_atoms,0);
+ dCC_dz=vector<double>(n_atoms,0);
+
  activity=0;
  d_activity_dx=vector<double>(n_atoms,0);
  d_activity_dy=vector<double>(n_atoms,0);
@@ -40,11 +46,7 @@ void kernel::calculate_distance(vector<double> &gridpoint_crd,
   for (unsigned j=0; j<atom_crd.size();j++)
   {
     if (bsite_bin[j]==0)
-    {
-        r[j]=0;
-        dr_dx[j]=0;
-        dr_dy[j]=0;
-        dr_dz[j]=0;
+    {   // values are already set to zero at kernel::reset()
         continue;
     }
     r[j]=sqrt(pow((atom_crd[j][0]-gridpoint_crd[0]),2)+
