@@ -16,6 +16,11 @@ using namespace std;
 class kernel
 {
  private:
+   // parameters
+    double theta=3;
+    double HCmax=0.45;
+    double x_offset=3;
+
     vector<double> r;
     vector<double> dr_dx;
     vector<double> dr_dy;
@@ -25,11 +30,13 @@ class kernel
                             vector<unsigned> &bsite_bin);
 
     vector<double> exp_r;
+    double sum_exp;
     double CC;
+    double dCC_dr;
     vector<double> dCC_dx;
     vector<double> dCC_dy;
     vector<double> dCC_dz;
-    void calculate_CC();
+    void calculate_CC(vector<unsigned> &bsite_bin);
 
     double HC;
     vector<double> d_HC_dx;
