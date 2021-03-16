@@ -16,10 +16,19 @@ using namespace std;
 class kernel
 {
  private:
+   // corefunctions
+   double m_v(double v, double v0, double delta);
+   double dm_dv(double delta);
+   double Son_m(double m, double k);
+   double dSon_dm(double m, double k);
+   double Soff_m(double m, double k);
+   double dSoff_dm(double m, double k);
    // parameters
-    double theta=3;
-    double HCmax=0.45;
-    double x_offset=3;
+    double kCCmin=pow(10,6); //hardcoded
+    double CCmin;
+    double deltaCC;
+    double SRmin;
+    double deltaSR;
 
     vector<double> r;
     vector<double> dr_dx;
@@ -44,7 +53,9 @@ class kernel
     vector<double> d_HC_dz;
 
  public:
-    kernel(unsigned &n_atoms);
+    kernel(unsigned &n_atoms,
+           double CCmin, double deltaCC, 
+           double SRmin, double deltaSR);
     void reset();
     void calculate_activity(vector<double> &gridpoint_crd, 
                             vector<PLMD::Vector> &atom_crd,

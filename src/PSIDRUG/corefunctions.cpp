@@ -3,3 +3,56 @@
 
 using namespace std;
 
+double kernel::m_v(double v, double v0, double delta)
+{
+    double m=(v-v0)/delta;
+    return m;
+}
+
+double kernel::dm_dv(double delta)
+{
+    return 1/delta;
+}
+
+double kernel::Son_m(double m, double k)
+{
+    double S_on=0;
+    if (m<=0) 
+        S_on=0;
+    else if ((m>0) and (m<1))
+        S_on=k*(3*pow(m,4)-2*pow(m,6));
+    else 
+        S_on=k;
+    return S_on;
+}
+
+double kernel::dSon_dm(double m, double k)
+{
+    double dS_on=0;
+    if (m<=0 or m>=1) 
+        dS_on=0;
+    else
+        dS_on=k*(12*(pow(m,3)-pow(m,5)));
+    return dS_on;
+}
+
+double kernel::Soff_m(double m, double k)
+{
+    double S_off=0;
+    if (m<=0) 
+        S_off=k;
+    else if ((m>0) and (m<1))
+        S_off=k*(3*pow((m-1),4)-2*pow((m-1),6));
+    else S_off=0;
+    return S_off;
+}
+
+double kernel::dSoff_dm(double m, double k)
+{
+    double dS_off=0;
+    if (m<=0 or m>=1) 
+        dS_off=0;
+    else
+        dS_off=k*(12*(pow((m-1),3)-pow((m-1),5)));
+    return dS_off;
+}

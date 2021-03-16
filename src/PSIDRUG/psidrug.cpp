@@ -57,6 +57,7 @@ PRINT ARG=t STRIDE=100 FILE=COLVAR
 //+ENDPLUMEDOC
 
 class Psidrug : public Colvar {
+  // SETUP
   bool pbc;
   bool debug;
   vector<AtomNumber> atoms;
@@ -69,6 +70,12 @@ class Psidrug : public Colvar {
   unsigned n_atoms;
   vector<grid> grids;
   vector<kernel>kernels;
+  //PARAMETERS
+  double CCmin=0;
+  double deltaCC=0;
+  double SRmin=0;
+  double deltaSR=0;
+  //CV
   double PsiDrug;
   vector<double> d_PsiDrug_dx;
   vector<double> d_PsiDrug_dy;
@@ -79,6 +86,7 @@ public:
   explicit Psidrug(const ActionOptions&);
 // active methods:
   void calculate() override;
+  void reset();
   static void registerKeywords(Keywords& keys);
 };
 
@@ -93,6 +101,10 @@ void Psidrug::registerKeywords(Keywords& keys) {
   keys.add("optional","SPACING","Space between adjacent grid points (default = 0.1 nm)");
   keys.add("optional","RTOL","Allowed maximum distance between the protein and the center of the grid at setup (default = 0.3 nm)");
   keys.add("optional","RSITE","Allowed maximum distance from the edge of the grid for any given atom to be taken into account (default = 0.45 nm)");
+  keys.add("optional","CCMIN","Distance at and below which we consider that a grid point is clashing with an atom (default = 0.2 nm)");
+  keys.add("optional","DELTACC","Distance interval over which the clash gridpoint-atom is turned off (default = 0.05)");
+  keys.add("optional","SRMIN","Distance at and below which we consider that a grid point sees an atom (default = 0.4 nm)");
+  keys.add("optional","DELTASR","Distance interval over which a grid point stops seeing an atom (default = 0.05 nm)");
   keys.add("optional","GRID_FILE","XYZ file containing a sample grid. Used for debug purposes.");
 }
 
@@ -109,10 +121,10 @@ Psidrug::Psidrug(const ActionOptions&ao):
   pbc=!nopbc;
 
   parseFlag("DEBUG",debug);
+  parse("GRID_FILE",grid_file);
   if (debug)
   {
      log.printf("RUNNING IN DEBUG MODE\n");
-     parse("GRID_FILE",grid_file);
      if(grid_file=="")
         {
           log.printf("Please specify a grid xyz file if you are running in debug mode");
@@ -148,6 +160,23 @@ Psidrug::Psidrug(const ActionOptions&ao):
   rsite+=rgrid;
   cout << "Atoms further away than " << rsite << " from the center of the grid will not contribute to score" << endl<< endl;
 
+  // PARAMETERS NEEDED TO CALCULATE THE CV
+  parse("CCMIN",CCmin);
+  if (!CCmin) CCmin=0.2;
+  cout << "CCmin = " << CCmin << endl;
+
+  parse("DELTACC",deltaCC);
+  if (!deltaCC) deltaCC=0.05;
+  cout << "deltaCC = " << deltaCC << endl;
+
+  parse("SRMIN",SRmin);
+  if (!SRmin) SRmin=0.4;
+  cout << "SRmin = " << SRmin << endl;
+
+  parse("DELTASR",deltaSR);
+  if (!deltaSR) deltaSR=0.05;
+  cout << "deltaSR = " << deltaSR << endl;
+
   checkRead();
   cout << "Initialising grids and kernels..." << endl;
   for (unsigned i=0; i<ngrid; i++)
@@ -164,7 +193,7 @@ Psidrug::Psidrug(const ActionOptions&ao):
       grids[i].grid_setup(rgrid,spacing,n_atoms);
     }
    cout << "   Initialising kernel " << i << endl;
-   kernels.push_back(kernel(n_atoms));
+   kernels.push_back(kernel(n_atoms,CCmin,deltaCC,SRmin,deltaSR));
   }
   cout << "...Grids and kernels initialised" << endl<<endl;
 
@@ -177,14 +206,24 @@ Psidrug::Psidrug(const ActionOptions&ao):
   cout << "--------- Initialisation complete -----------" << endl;
 }
 
-
+// reset psidrug and derivatives to 0
+void Psidrug::reset()
+{
+  PsiDrug=0;
+  for (unsigned j=0; j<n_atoms;j++)
+  {
+    d_PsiDrug_dx[j]=0;
+    d_PsiDrug_dy[j]=0;
+    d_PsiDrug_dz[j]=0;
+  }
+}
 // calculator
 void Psidrug::calculate() {
   if (pbc) makeWhole();
+  reset(); 
+  numstep++;
   vector<Vector> atom_crd=getPositions();
   int step=getStep();
-  numstep++;
-  PsiDrug=0;
 
   for (unsigned k=0; k<grids.size();k++)
   {
@@ -194,19 +233,14 @@ void Psidrug::calculate() {
       if (!debug) grids[k].place_random(atom_crd,rtol);
       grids[k].assign_bsite_bin(atom_crd,rsite);
     }
-    /*
-    This if block is here just to debug derivatives
-    The grid update bugs when trying to calculate the derivatives of the box
-    Need to ask (Giovanni?) how to get around that and what impact it may
-    have on simulations
-    */
-    if (numstep<=n_atoms*3 and checkNumericalDerivatives())
-    {
-      grids[k].center_grid(atom_crd);
-      grids[k].assign_bsite_bin(atom_crd,rsite);
-    }
- 
-    //if (debug) 
+    // The center_grid and assign_bsite_bin statements that follow
+    // are commented out for derivative testing, as the update
+    // bugs when calculating numerical derivatives and
+    // checkNumericalDerivatives() doesn't seem to be a good
+    // control variable (always returns true?)
+    //grids[k].center_grid(atom_crd);
+    //grids[k].assign_bsite_bin(atom_crd,rsite);
+    
     grids[k].print_grid(k,step);
     grids[k].reset_psigrid();
     for (unsigned i=0; i<grids[k].size_grid;i++)
@@ -225,14 +259,14 @@ void Psidrug::calculate() {
       d_PsiDrug_dz[j]+=grids[k].d_Psigrid_dz[j];
     }
   }
-  
+  cout << "Step " << numstep << " PsiDrug = " << PsiDrug << endl;
   for (unsigned j=0; j<n_atoms;j++)
   {
     setAtomsDerivatives(j,Vector(d_PsiDrug_dx[j],d_PsiDrug_dy[j],d_PsiDrug_dz[j]));
+    //cout << "Atom " << j << ": " << d_PsiDrug_dx[j] << " " << d_PsiDrug_dy[j] << " " << d_PsiDrug_dz[j] << endl;
   }
   setBoxDerivativesNoPbc();
   setValue(PsiDrug);
-  cout << "Step " << numstep << "PsiDrug = " << PsiDrug << endl;
 }
 
 }
