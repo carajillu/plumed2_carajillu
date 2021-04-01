@@ -13,17 +13,19 @@ kernel::kernel(unsigned &n_atoms,
  SRmin=srmin;
  deltaSR=deltasr;
  
+ //distance
  r=vector<double>(n_atoms,0);
  dr_dx=vector<double>(n_atoms,0);
  dr_dy=vector<double>(n_atoms,0);
  dr_dz=vector<double>(n_atoms,0);
 
- exp_r=vector<double>(n_atoms,0);
+ //close contact
  CC=0;
  dCC_dx=vector<double>(n_atoms,0);
  dCC_dy=vector<double>(n_atoms,0);
  dCC_dz=vector<double>(n_atoms,0);
 
+ //hydrophobicity
  hydrophobicity=0;
  d_hydrophobicity_dx=vector<double>(n_atoms,0);
  d_hydrophobicity_dy=vector<double>(n_atoms,0);
@@ -123,29 +125,7 @@ void kernel::calculate_CC(vector<unsigned> &bsite_bin)
 
 void kernel::calculate_hydrophobicity(vector<unsigned> &bsite_bin, vector<double> &charges)
 {
-  Q_avg=0;
-  double m=0;
-  double Soff_r=0;
-  double sum_Soff_r=0;
-  double dSoff_j=0;
-  // Calculate average charge + derivarives of S_off(r_ij) (in d_hydrophobicity to save memory)
-  for (unsigned j=0;j<bsite_bin.size();j++)
-  {
-   if (bsite_bin[j]==0) 
-      continue;
-   m=m_v(r[j],SRmin,deltaSR);
-   Soff_r=Soff_m(m,1.0);
-   //cout << "Soff: " << Soff_r << endl;
-   Q_avg+=charges[j]*Soff_r;
-   sum_Soff_r+=Soff_r;
-
-   dSoff_j=dSoff_dm(m,1)*dm_dv(deltaSR);
-   d_hydrophobicity_dx[j]=dSoff_j*dr_dx[j];
-   d_hydrophobicity_dy[j]=dSoff_j*dr_dy[j];
-   d_hydrophobicity_dz[j]=dSoff_j*dr_dz[j];
-  }
-  hydrophobicity=sum_Soff_r;
-  //cout << "Hydro: " << hydrophobicity << endl;
+  
 }
 
 void kernel::calculate_activity(vector<double> &gridpoint_crd, 

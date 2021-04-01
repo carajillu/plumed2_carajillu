@@ -38,8 +38,7 @@ class kernel
                             vector<PLMD::Vector> &atom_crd, 
                             vector<unsigned> &bsite_bin);
 
-    vector<double> exp_r;
-    double sum_exp;
+    
     double CC;
     double dCC_dr;
     vector<double> dCC_dx;
@@ -48,7 +47,6 @@ class kernel
     void calculate_CC(vector<unsigned> &bsite_bin);
 
     double hydrophobicity;
-    double Q_avg;//average charge scaled by Soff(r_ij)
     vector<double> d_hydrophobicity_dx;
     vector<double> d_hydrophobicity_dy;
     vector<double> d_hydrophobicity_dz;
