@@ -81,6 +81,8 @@ class Psidrug : public Colvar {
   vector<double> d_PsiDrug_dy;
   vector<double> d_PsiDrug_dz;
   int numstep=0;
+  vector<Vector> atom_crd; //atom coordinates
+  vector<double> charges;
 
 public:
   explicit Psidrug(const ActionOptions&);
@@ -135,6 +137,8 @@ Psidrug::Psidrug(const ActionOptions&ao):
   parseAtomList("ATOMS",atoms);
   requestAtoms(atoms);
   n_atoms=atoms.size();
+  atom_crd.reserve(n_atoms);
+  charges.reserve(n_atoms);
 
   cout << "--------- Initialising Psidrug Collective Variable -----------" << endl;
 
@@ -220,11 +224,20 @@ void Psidrug::reset()
 // calculator
 void Psidrug::calculate() {
   if (pbc) makeWhole();
-  reset(); 
-  numstep++;
-  vector<Vector> atom_crd=getPositions();
+  reset();
   int step=getStep();
-
+  numstep++;
+  atom_crd=getPositions();
+  
+  //Get charges only at step 0
+  if (step==0)
+  {
+   for (unsigned j=0; j<n_atoms;j++)
+   {
+    charges[j]=getCharge(j);
+   }
+  }
+  
   for (unsigned k=0; k<grids.size();k++)
   {
     //Update Grid Coordinates//
@@ -238,14 +251,27 @@ void Psidrug::calculate() {
     // bugs when calculating numerical derivatives and
     // checkNumericalDerivatives() doesn't seem to be a good
     // control variable (always returns true?)
-    //grids[k].center_grid(atom_crd);
-    //grids[k].assign_bsite_bin(atom_crd,rsite);
+    /*
+    vector<unsigned> bsite_bin_noconv(n_atoms,0);
+    vector<double> center_noconv(3,0);
+    unsigned iter=0;
+    while (bsite_bin_noconv!=grids[k].bsite_bin or center_noconv!=grids[k].centre)
+    {
+     bsite_bin_noconv=grids[k].bsite_bin;
+     center_noconv=grids[k].centre;
+     grids[k].center_grid(atom_crd);
+     grids[k].assign_bsite_bin(atom_crd,rsite);
+     cout << "step " << numstep << ": grid centered at " << grids[k].centre[0] << "," << grids[k].centre[1] << "," << grids[k].centre[2] << endl;
+     iter++;
+     if(iter>10) exit(0);
+    }
+    */
     
     grids[k].print_grid(k,step);
     grids[k].reset_psigrid();
     for (unsigned i=0; i<grids[k].size_grid;i++)
     {
-     kernels[k].calculate_activity(grids[k].positions[i],atom_crd,grids[k].bsite_bin);
+     kernels[k].calculate_activity(grids[k].positions[i],atom_crd,grids[k].bsite_bin,charges);
      grids[k].add_activity(kernels[k].activity,
                            kernels[k].d_activity_dx,
                            kernels[k].d_activity_dy,
@@ -260,13 +286,13 @@ void Psidrug::calculate() {
     }
   }
   cout << "Step " << numstep << " PsiDrug = " << PsiDrug << endl;
+  setValue(PsiDrug);
   for (unsigned j=0; j<n_atoms;j++)
   {
     setAtomsDerivatives(j,Vector(d_PsiDrug_dx[j],d_PsiDrug_dy[j],d_PsiDrug_dz[j]));
     //cout << "Atom " << j << ": " << d_PsiDrug_dx[j] << " " << d_PsiDrug_dy[j] << " " << d_PsiDrug_dz[j] << endl;
   }
   setBoxDerivativesNoPbc();
-  setValue(PsiDrug);
 }
 
 }
