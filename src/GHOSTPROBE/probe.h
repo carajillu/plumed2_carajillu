@@ -93,6 +93,7 @@ class Probe
   void rand_pert();
   void dx_pert();
   void bring_to_centroid();
+  void xplor_pert();
 
  public:
     Probe(unsigned Probe_id, bool restart_probes,
