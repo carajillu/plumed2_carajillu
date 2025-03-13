@@ -32,7 +32,7 @@ def json_to_pd(json_path: str):
         holo_pymol_selection.append(json_db[key]["holo_pymol_selection"])
         holo_mdtraj_selection.append(sel_pymol2mdtraj(json_db[key]["holo_pymol_selection"]))
         ligand_pymol_selection.append(f"{json_db[key]["holo_pdb_id"]} and chain {json_db[key]["ligand_chain"]} and resn {json_db[key]["ligand"]} and resi {json_db[key]["ligand_index"]}")
-        ligand_mdtraj_selection.append(f"resname {json_db[key]["ligand"]} and resSeq {json_db[key]["ligand_index"]}")
+        ligand_mdtraj_selection.append(f"resname \'{json_db[key]["ligand"]}\' and resSeq {json_db[key]["ligand_index"]}")
     df=pd.DataFrame({
          "holo_pdb_id": holo_pdb_id,
          "holo_chain": holo_chain,
@@ -46,6 +46,21 @@ def json_to_pd(json_path: str):
           })
     
     return df
+
+def sel_pymol2mdtraj(pymol_selection_str: str):
+    pymol_selection_str=pymol_selection_str.split()
+    pymol_sel_lst=[]
+    items_to_exclude=["","resi","and","chain"]
+    for item in pymol_selection_str:
+        item=item.strip("(").strip(")")
+        if item in items_to_exclude:
+            continue
+        if "+" in item:
+            item=item.split("+")
+        pymol_sel_lst.append(item)
+    #mdtraj_sel_str=f"chain {pymol_sel_lst[1]} and (resid {" or resid ".join(pymol_sel_lst[2])})" # chain id not available in mdtraj
+    mdtraj_sel_str=f"resSeq {" or resSeq ".join(pymol_sel_lst[2])}"
+    return mdtraj_sel_str
 
 def pdb_get_chain(pdb_str: str, holo_chain: str, ligand_chain: str):
     #return pdb_str
@@ -89,22 +104,8 @@ def build_benchmark(df:pd.DataFrame):
         ligand_obj.save_pdb("ligand.pdb")
         
         os.chdir(rootdir)
-
-
-def sel_pymol2mdtraj(pymol_selection_str: str):
-    pymol_selection_str=pymol_selection_str.split()
-    pymol_sel_lst=[]
-    items_to_exclude=["","resi","and","chain"]
-    for item in pymol_selection_str:
-        item=item.strip("(").strip(")")
-        if item in items_to_exclude:
-            continue
-        if "+" in item:
-            item=item.split("+")
-        pymol_sel_lst.append(item)
-    #mdtraj_sel_str=f"chain {pymol_sel_lst[1]} and (resid {" or resid ".join(pymol_sel_lst[2])})" # chain id not available in mdtraj
-    mdtraj_sel_str=f"resSeq {" or resSeq ".join(pymol_sel_lst[2])}"
-    return mdtraj_sel_str
+    
+    return
 
 
 
