@@ -176,6 +176,11 @@ def build_benchmark(df:pd.DataFrame,r_max:float=0.6):
         #Get get ligand and receptor objects
         rec_sel=[]
         lig_sel=structure_obj.topology.select(df.ligand_mdtraj_selection[i])
+        if (len(lig_sel)==0):
+            print(f"************************* {holo_pdb_id} ligand not allowed: {df.ligand[i]} *************************")
+            n_fail_noligand.append(holo_pdb_id)
+            continue
+        
         for atom in structure_obj.topology.atoms:
             if atom.index not in lig_sel:
                rec_sel.append(atom.index)
