@@ -6,9 +6,9 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Process some floats.")
     parser.add_argument('--input', type=str, default="system.pdb", help='Protein-ligand input system')
-    parser.add_argument('--ligresname', type=str, default="LIG", help='residue name of the ligand')
-    parser.add_argument('--min_r',type=float, default=0.15, help="maximum distance between placed probe and closest ligand atom")
-    parser.add_argument('--max_r',type=float, default=0.30, help="minimum distance between placed probes")
+    parser.add_argument('--ligresname', type=str, default=None, help='residue name of the ligand')
+    parser.add_argument('--r_max',type=float, default=0.15, help="maximum distance between placed probe and closest ligand atom")
+    parser.add_argument('--r_min',type=float, default=0.30, help="minimum distance between placed probes")
     parser.add_argument('--output', type=str, default="pseudo.pdb", help='PDB file of probes overlapping ligand')
 
     args = parser.parse_args()
@@ -110,7 +110,10 @@ def generate_maximal_set_B(A, r_max, r_min, num_candidates=1000):
 if __name__=="__main__":
    args=parse_args()
    z=mdtraj.load(args.input)
-   ligand=get_ligand(z,args.ligresname)
+   if args.ligresname is not None:
+      ligand=get_ligand(z,args.ligresname)
+   else:
+       ligand=z
    ligand_heavy=get_heavy_atoms(ligand)
-   pseudo=generate_maximal_set_B(ligand_heavy.xyz[0],r_max=0.15,r_min=0.3)
+   pseudo=generate_maximal_set_B(ligand_heavy.xyz[0],r_max=args.r_max,r_min=args.r_min)
    pseudo.save_pdb(args.output)
