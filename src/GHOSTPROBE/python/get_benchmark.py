@@ -1,5 +1,5 @@
 import json
-import pypdb
+from pypdb.clients.pdb.pdb_client import get_pdb_file
 import pandas as pd
 import subprocess
 import os
@@ -131,6 +131,7 @@ def filter_atoms_by_distance(A: mdtraj.Trajectory, B: mdtraj.Trajectory, frame: 
 
 def build_benchmark(df:pd.DataFrame,r_max:float=0.6):
     rootdir=os.getcwd()
+    os.makedirs("cryptobench_benchmark",exist_ok=True)
     n_success=[]
     n_fail_noligand=[]
     n_fail_noreceptor=[]
@@ -140,23 +141,31 @@ def build_benchmark(df:pd.DataFrame,r_max:float=0.6):
         
         holo_pdb_id=df.holo_pdb_id[i]
 
-        #Ligand might have been in excluded gorups
-        if df.ligand[i] in excluded_residues:
-            print(f"************************* {holo_pdb_id} ligand not allowed: {df.ligand[i]} *************************")
-            n_fail_noligand.append(holo_pdb_id)
+        if (os.path.isfile(f"cryptobench_benchmark/{holo_pdb_id}/ligand.pdb") and os.path.isfile(f"cryptobench_benchmark/{holo_pdb_id}/ligand.pdb")) or\
+           (os.path.isfile(f"mdtraj_error/{holo_pdb_id}.pdb")) or\
+           (os.path.isfile(f"illegal_ligands/{holo_pdb_id}.pdb")):
             continue
 
-        #get pdb structure
-        pdb_str=pypdb.get_pdb_file(holo_pdb_id)
-        if pdb_str is None: #if get_pdb fails, it returns None
-           n_fail_download.append(holo_pdb_id)
-           print(f"************************* failed to download file {holo_pdb_id}.pdb  *************************")
-           if os.path.isfile(f"{holo_pdb_id}.pdb"):
-                shutil.rmtree(f"{holo_pdb_id}.pdb")
-           continue
-
-        with open(f"{holo_pdb_id}.pdb","w") as f:
-             f.write(pdb_str)
+        #get pdb structure. pypdb API is not great so retries are necessary to get some files
+        try:
+            pdb_str=None
+            try_count=0
+            while not pdb_str and try_count<10:
+               try:
+                  pdb_str=get_pdb_file(holo_pdb_id)
+               except:
+                  pass
+               finally:
+                  try_count+=1
+                  os.wait(10)
+            with open(f"{holo_pdb_id}.pdb","w") as f:
+                    f.write(pdb_str)
+        except:
+            n_fail_download.append(holo_pdb_id)       
+            print(f"************************* failed to download file {holo_pdb_id}.pdb  *************************")
+            if os.path.isfile(f"{holo_pdb_id}.pdb"):
+               os.remove(f"{holo_pdb_id}.pdb")
+            continue
 
         try:
             structure_obj=mdtraj.load(f"{holo_pdb_id}.pdb")
@@ -200,11 +209,11 @@ def build_benchmark(df:pd.DataFrame,r_max:float=0.6):
 
         #export structures
         rootdir=os.getcwd()
-        os.makedirs(holo_pdb_id,exist_ok=True)
-        os.chdir(holo_pdb_id)
+        os.makedirs(f"cryptobench_benchmark/{holo_pdb_id}",exist_ok=True)
+        os.chdir(f"cryptobench_benchmark/{holo_pdb_id}")
         ligand_slice.save_pdb("ligand.pdb")
         receptor_slice.save_gro("pocket.gro")
-        shutil.move(f"{rootdir}/{holo_pdb_id}.pdb",f"{rootdir}/{holo_pdb_id}/{holo_pdb_id}.pdb")
+        shutil.move(f"{rootdir}/{holo_pdb_id}.pdb",f"{rootdir}/cryptobench_benchmark/{holo_pdb_id}/{holo_pdb_id}.pdb")
         os.chdir(rootdir)
         n_success.append(holo_pdb_id)
         print(f"************************* successfully exported structures for {holo_pdb_id} *************************")
@@ -223,21 +232,18 @@ def build_benchmark(df:pd.DataFrame,r_max:float=0.6):
        print(n_fail_noreceptor)
        os.makedirs("wrong_ligands",exist_ok=True)
        for item in n_fail_noreceptor:
-           shutil.move(f"{rootdir}/{item}.pdb",f"{rootdir}/illegal_ligands/{item}.pdb")
+           shutil.move(f"{rootdir}/{item}.pdb",f"{rootdir}/wrong_ligands/{item}.pdb")
 
     print(f"Number of structures that couuld not be loaded on mdtraj: {len(n_fail_mdtraj)}")
     if len(n_fail_mdtraj)>0:
        print(n_fail_mdtraj)
        os.makedirs("mdtraj_error",exist_ok=True)
        for item in n_fail_mdtraj:
-           shutil.move(f"{rootdir}/{item}.pdb",f"{rootdir}/illegal_ligands/{item}.pdb")
+           shutil.move(f"{rootdir}/{item}.pdb",f"{rootdir}/mdtraj_error/{item}.pdb")
 
     print(f"Number of structures that could not be downloaded: {len(n_fail_download)}")
     if len(n_fail_download)>0:
        print(n_fail_download)
-       os.makedirs("download_error",exist_ok=True)
-       for item in n_fail_download:
-           shutil.move(f"{rootdir}/{item}.pdb",f"{rootdir}/illegal_ligands/{item}.pdb")
 
     return
 
