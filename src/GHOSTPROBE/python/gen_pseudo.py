@@ -6,7 +6,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="Process some floats.")
     parser.add_argument('--input', type=str, default="system.pdb", help='Protein-ligand input system')
-    parser.add_argument('--ligresname', type=str, default=None, help='residue name of the ligand')
+    parser.add_argument('--ligresname', type=str, default=None, help='residue name of the ligand (if supplying just ligand, do not specify)')
     parser.add_argument('--r_max',type=float, default=0.15, help="maximum distance between placed probe and closest ligand atom")
     parser.add_argument('--r_min',type=float, default=0.30, help="minimum distance between placed probes")
     parser.add_argument('--output', type=str, default="pseudo.pdb", help='PDB file of probes overlapping ligand')
