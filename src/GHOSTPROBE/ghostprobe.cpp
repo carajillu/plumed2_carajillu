@@ -378,8 +378,6 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
         deltaP = 17; 
       cout << "DELTAP = " << deltaP << endl;
 
-      parse("PERTSTRIDE",pertstride);
-
       parse("KPERT",kpert);
       if (!kpert)
       {
@@ -394,12 +392,12 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       cout << "Perturbations will go in the direction opposite to the derivatives of the activity" << endl;
       cout << "with respect to the probe, when possible. (Fx=-dV/dx)" << endl;
       }
-
+      
+      parse("PERTSTRIDE",pertstride);
       parse("KXPLOR",kxplor);
       if (kxplor)
       {
-      cout << "Perturbations of " << kxplor << " nm will be applied to probes with C equal to 0." << endl;
-      cout << "Those perturbations will go in a random direction." << endl;
+      cout << "Random perturbations of " << kxplor << " nm will be applied to all probes every" << pertstride << " steps" << endl;
       }
 
       for (unsigned i = 0; i < nprobes; i++)
@@ -748,23 +746,15 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
           }
         }
 
-        // print probe coordinates
-        if (step%probestride==0)
-        {
-          probes[i].print_probe_xyz(step);
-          probes[i].print_probe_movement(step, atoms, n_atoms);
-        }
-
-        //perturb probe coordinates  at every step (if activity<1)
         /*
-        perturb_probe() needs to go after calculation of activity
-        if we are using the derivatives to define the direction of the perturbation.
-        If not, we can put it at the top, where it might make a bit more sense.
+        The following needs to go IN THIS ORDER: print_probe_xyz(), perturb_probe(), print_prove_movement()
+        because print_probe_movement() records the type of perturbation.
         */
-        if (kpert>0)
-        {
-        probes[i].perturb_probe(step);
-        }
+        if (step%probestride==0) probes[i].print_probe_xyz(step);
+        if (kpert>0) probes[i].perturb_probe(step);
+        if (step%probestride==0) probes[i].print_probe_movement(step,atoms,n_atoms);
+        
+        
       }
       if (performance and step%probestride==0)  end_psi = high_resolution_clock::now();
       
