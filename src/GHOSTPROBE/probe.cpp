@@ -126,9 +126,9 @@ void Probe::bring_to_centroid()
 {
  //cout << "enclosure = " << enclosure << ". Moving probe towards the protein centroid." << endl;
   double norm=sqrt(pow((centroid[0]-xyz[0]),2)+pow((centroid[1]-xyz[1]),2)+pow((centroid[2]-xyz[2]),2));
-  xyz[0]+=Kpert/norm*(centroid[0]-xyz[0]);
-  xyz[1]+=Kpert/norm*(centroid[1]-xyz[1]);
-  xyz[2]+=Kpert/norm*(centroid[2]-xyz[2]);
+  xyz[0]+=Kxplor/norm*(centroid[0]-xyz[0]);
+  xyz[1]+=Kxplor/norm*(centroid[1]-xyz[1]);
+  xyz[2]+=Kxplor/norm*(centroid[2]-xyz[2]);
 }
 
 void Probe::xplor_pert()
@@ -137,38 +137,43 @@ void Probe::xplor_pert()
   double rand_y=COREFUNCTIONS::random_double(-1,1);
   double rand_z=COREFUNCTIONS::random_double(-1,1);
   double norm=sqrt(pow(rand_x,2)+pow(rand_y,2)+pow(rand_z,2));
-  xyz[0]+=Kpert*(rand_x/norm);
-  xyz[1]+=Kpert*(rand_y/norm);
-  xyz[2]+=Kpert*(rand_z/norm);
+  xyz[0]+=Kxplor*(rand_x/norm);
+  xyz[1]+=Kxplor*(rand_y/norm);
+  xyz[2]+=Kxplor*(rand_z/norm);
   return;
 }
 
 
 void Probe::perturb_probe(unsigned step)
 {
-  if (P==0) //probe is way too far, move it towards the centre of the protein
-  { 
-   pertype="centroid";
-   bring_to_centroid();
-   //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function bring_to_centroid()" << endl;
+  if (pertstride==0) // exit function if we are not doing pocket search
+  {
+    pertype="none";
+    return;
   }
-  else if (pertstride>0 and step%pertstride==0)
+
+  if (step%pertstride==0)
   {
    //cout << " Step "<< step << ": calling function rand_pert()" << endl;
-   pertype="random";
+   pertype="xplor";
    xplor_pert();
   }
   else if (activity==1)
   {
    //cout << " Step "<< step << ": activity = " << activity << ". Doing nothing" << endl;
    pertype="none";
-   return;
   }
   else if (activity>0 and activity<1)
   {
     //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function dx_pert()" << endl;
     pertype="dx";
     dx_pert();
+  }
+  else if (P==0) //probe is way too far, move it towards the centre of the protein
+  { 
+   pertype="centroid";
+   bring_to_centroid();
+   //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function bring_to_centroid()" << endl;
   }
   else //C==0
   {
