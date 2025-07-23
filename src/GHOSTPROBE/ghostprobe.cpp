@@ -21,7 +21,7 @@
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 #include "colvar/Colvar.h"
 #include "core/ActionRegister.h"
-#include "core/PDB.h"
+#include "tools/PDB.h"
 
 #include <string>
 #include <iostream>
@@ -87,6 +87,7 @@ namespace PLMD
       unsigned pertstride=0;
       string ref_lig;
       PDB lig_pdb;
+      PDB atoms_pdb; //pdb with the involved atoms and their hydrophobicity coefficients as 
       bool restart_probes;
       int restart_frame=0;
       // Parameters
@@ -100,6 +101,7 @@ namespace PLMD
       double deltaC=0;         // interval over which depth term turns from 0 to 1
       double Hmin=0;           // hydrophobicity factor below which depth term equals 0
       double deltaH=0;         // interval over which hydrophobicity term turns from
+      vector<double> h_coeff; // hydrophobicity coefficients for each atom in the PDB file
       
 
       // Set up of CV
@@ -182,6 +184,7 @@ namespace PLMD
       keys.add("atoms", "ATOMS", "Atoms to include in druggability calculations (start at 1)");
       keys.add("atoms", "DXCLUDE", "Atoms that will experience the GHOSTPROBE force");
       keys.add("atoms", "ATOMS_INIT", "Atoms in which the probes will be initially centered.");
+      keys.add("optional","PDB","PDB file of the atoms involved, for hydrophobicity calculations");
       keys.add("optional", "NPROBES", "Number of probes to use");
       keys.add("optional", "PROBESTRIDE", "Print probe coordinates info every PROBESTRIDE steps");
       keys.add("optional", "RMIN", "");
@@ -192,6 +195,8 @@ namespace PLMD
       keys.add("optional", "DELTAC", "");
       keys.add("optional", "PMIN", "");
       keys.add("optional", "DELTAP", "");
+      keys.add("optional", "HMIN", "");
+      keys.add("optional", "DELTAH", "");
       keys.add("optional", "KPERT", "");
       keys.add("optional", "KXPLOR", "");
       keys.add("optional", "PERTSTRIDE", "Do a full KPERT random perturbation every PERTSTRIDE steps");
@@ -340,6 +345,32 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       requestAtoms(atoms);
       cout << "--------- Initialising Ghostprobe Collective Variable -----------" << endl;
 
+      //Get PDB file for hydrophobicity
+      string pdb_protein;
+      parse("PDB",pdb_protein);
+      if (pdb_protein.empty())
+      {
+        cout << "PDB not specified. Hydrophobicity coefficients will all be set to 1." << endl;
+        h_coeff=vector<double> (n_atoms, 1.0);
+      }
+      else
+      {
+        atoms_pdb.read(pdb_protein, usingNaturalUnits(), 0.1/getUnits().getLength());
+        const std::vector<AtomNumber>& atom_numbers = atoms_pdb.getAtomNumbers();
+        for (const auto& atom_num : atom_numbers)
+        {
+          std::string atom_name = atoms_pdb.getAtomName(atom_num);
+          if (!atom_name.empty()) {
+            char first = atom_name[0];
+            if (first == 'C' || first == 'S') {
+              h_coeff.push_back(1.0); // Hydrophobicity coefficient for C and S atoms
+            } else {
+              h_coeff.push_back(0.0); // Default hydrophobicity coefficient for other atoms
+            }
+          }
+        }
+      }
+
       cout << "Using " << nprobes << " spherical probe(s) with the following parameters:" << endl;
 
       parse("RMIN", Rmin);
@@ -381,6 +412,26 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       if (!deltaP)
         deltaP = 17; 
       cout << "DELTAP = " << deltaP << endl;
+
+      parse("HMIN", Hmin);
+      if (!Hmin)
+        Hmin = 0; 
+      cout << "HMIN = " << Hmin << endl;
+
+      parse("DELTAH", deltaH);
+      if (!deltaH)
+        deltaH = 17; 
+      cout << "DELTAH = " << deltaH << endl;
+       
+      /*
+      cout << "Hydrophobicity coefficients" << endl;
+      const std::vector<AtomNumber>& atom_numbers = atoms_pdb.getAtomNumbers();
+      for (unsigned j=0; j<n_atoms; j++)
+      {
+        cout << atoms_pdb.getAtomName(atom_numbers[j]) << ": " << h_coeff[j] << endl;
+      }
+      */
+      
 
       parse("KPERT",kpert);
       if (!kpert)
