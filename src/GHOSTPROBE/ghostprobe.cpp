@@ -21,6 +21,7 @@
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 #include "colvar/Colvar.h"
 #include "core/ActionRegister.h"
+#include "core/PDB.h"
 
 #include <string>
 #include <iostream>
@@ -97,6 +98,9 @@ namespace PLMD
       double deltaP=0;         // interval over which depth term turns from 0 to 1
       double Cmin=0;           // packing factor below which depth term equals 0
       double deltaC=0;         // interval over which depth term turns from 0 to 1
+      double Hmin=0;           // hydrophobicity factor below which depth term equals 0
+      double deltaH=0;         // interval over which hydrophobicity term turns from
+      
 
       // Set up of CV
       vector<PLMD::AtomNumber> atoms; // indices of atoms supplied to the CV (starts at 1)
@@ -259,7 +263,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
 
       parseAtomList("ATOMS", atoms);
       n_atoms = atoms.size();
-
+      
       parseAtomList("DXCLUDE", dxclude);
       n_dxclude = dxclude.size();
       cout << "Excluding " << n_dxclude << " atoms from derivative calculations" << endl;
