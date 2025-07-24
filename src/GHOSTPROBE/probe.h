@@ -19,6 +19,8 @@ class Probe
   double deltaC; // interval over which depth term turns from 0 to 1
   double Pmin; // packing factor below which depth term equals 0
   double deltaP; // interval over which depth term turns from 0 to 1
+  double Hmin; // hydrophobicity factor below which  hydrophobicity term equals 0
+  double deltaH; // interval over which hydrophobicity term turns from 0 to 1
   double Kpert;
   double Kxplor;
   string pertype;
@@ -72,6 +74,19 @@ class Probe
   //C=S_off(total_clash)
   void calculate_C();
 
+  //Hydrophobicity score
+  double hydrophobicity;
+  vector<double> d_hydrophobicity_dx;
+  vector<double> d_hydrophobicity_dy;
+  vector<double> d_hydrophobicity_dz;
+  void calculate_hydrophobicity();
+
+  double H;
+  vector<double> dH_dx;
+  vector<double> dH_dy;
+  vector<double> dH_dz;
+  void calculate_H();
+
   //coordinates
   vector<double> xyz;
   vector<double> centroid;
@@ -100,7 +115,8 @@ class Probe
           double RMin, double DeltaRmin, 
           double RMax, double DeltaRmax, 
           double phimin, double deltaphi, 
-          double psimin, double deltapsi, 
+          double psimin, double deltapsi,
+          double hmin, double deltah,
           double kpert, double kxplor, unsigned Pertstride,
           unsigned N_atoms);
     

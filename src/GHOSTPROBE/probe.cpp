@@ -20,7 +20,8 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
             double RMin, double DeltaRmin, 
             double RMax, double DeltaRmax, 
             double phimin, double deltaphi, 
-            double psimin, double deltapsi, 
+            double psimin, double deltapsi,
+            double hmin, double deltah,
             double kpert, double kxplor, unsigned Pertstride,
             unsigned N_atoms)
 {
@@ -36,6 +37,8 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
   deltaC=deltaphi;
   Pmin=psimin; 
   deltaP=deltapsi;
+  Hmin=hmin;
+  deltaH=deltah;
   Kpert=kpert;
   Kxplor=kxplor;
   pertstride=Pertstride;
@@ -62,6 +65,11 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
   d_clash_dy=vector<double>(n_atoms,0);
   d_clash_dz=vector<double>(n_atoms,0);
 
+  hydrophobicity=0;
+  d_hydrophobicity_dx=vector<double>(n_atoms,0);
+  d_hydrophobicity_dy=vector<double>(n_atoms,0);
+  d_hydrophobicity_dz=vector<double>(n_atoms,0);
+
   C=0;
   dC_dx=vector<double>(n_atoms,0);
   dC_dy=vector<double>(n_atoms,0);
@@ -71,6 +79,11 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
   dP_dx=vector<double>(n_atoms,0);
   dP_dy=vector<double>(n_atoms,0);
   dP_dz=vector<double>(n_atoms,0);
+
+  H=0;
+  dH_dx=vector<double>(n_atoms,0);
+  dH_dy=vector<double>(n_atoms,0);
+  dH_dz=vector<double>(n_atoms,0);
 
   xyz=vector<double>(3,0);
   arma_xyz=arma::mat(1,3,arma::fill::zeros);
@@ -310,12 +323,32 @@ void Probe::calculate_C()
  }
 }
 
+void Probe::calculate_hydrophobicity()
+{
+  hydrophobicity=0;
+  d_hydrophobicity_dx=vector<double>(n_atoms,0);
+  d_hydrophobicity_dy=vector<double>(n_atoms,0);
+  d_hydrophobicity_dz=vector<double>(n_atoms,0);
+  return;
+}
+
+void Probe::calculate_H()
+{
+  H=1;
+  dH_dx=vector<double>(n_atoms,0);
+  dH_dy=vector<double>(n_atoms,0);
+  dH_dz=vector<double>(n_atoms,0);
+  return;
+}
+
+
 void Probe::calculate_activity(vector<double> atoms_x, vector<double> atoms_y, vector<double> atoms_z)
 {
  calculate_r(atoms_x,atoms_y,atoms_z);
  calculate_C();
  calculate_P();
- activity=C*P;
+ calculate_H();
+ activity=C*P*H;
  if (dxcalc)
  {
   d_activity_dprobe[0]=0;
@@ -323,9 +356,9 @@ void Probe::calculate_activity(vector<double> atoms_x, vector<double> atoms_y, v
   d_activity_dprobe[2]=0;
   for (unsigned j=0; j<n_atoms;j++)
   {
-   d_activity_dx[j]=C*dP_dx[j]+P*dC_dx[j];
-   d_activity_dy[j]=C*dP_dy[j]+P*dC_dy[j];
-   d_activity_dz[j]=C*dP_dz[j]+P*dC_dz[j];
+   d_activity_dx[j]=(C*dP_dx[j]+P*dC_dx[j])*H+dH_dx[j]*(C*P);
+   d_activity_dy[j]=(C*dP_dy[j]+P*dC_dy[j])*H+dH_dy[j]*(C*P);
+   d_activity_dz[j]=(C*dP_dz[j]+P*dC_dz[j])*H+dH_dz[j]*(C*P);
    d_activity_dprobe[0]-=d_activity_dx[j];
    d_activity_dprobe[1]-=d_activity_dy[j];
    d_activity_dprobe[2]-=d_activity_dz[j];
@@ -439,7 +472,7 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
   if (step==0)
   {
    wfile.open(filename.c_str());
-   wfile << "ID Step pertype min_r_serial min_r enclosure P clash C activity" << endl;
+   wfile << "ID Step pertype min_r_serial min_r enclosure P clash C hydrophobicity H activity" << endl;
   }
   else
    wfile.open(filename.c_str(),std::ios_base::app);
@@ -452,7 +485,8 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
   */
   wfile << probe_id << " " << step << " " << pertype << " " << atoms[j_min_r].serial() << " " << min_r << " " 
         << total_enclosure << " " << P << " " 
-        << total_clash << " " << C << " " 
+        << total_clash << " " << C << " "
+        << hydrophobicity << " " << H << " "
         << activity << endl;
   wfile.close();
 }
