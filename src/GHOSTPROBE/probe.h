@@ -19,6 +19,7 @@ class Probe
   double deltaC; // interval over which depth term turns from 0 to 1
   double Pmin; // packing factor below which depth term equals 0
   double deltaP; // interval over which depth term turns from 0 to 1
+  vector<double> H_coeff; // hydrophobicity coefficients for each atom in the PDB file
   double Hmin; // hydrophobicity factor below which  hydrophobicity term equals 0
   double deltaH; // interval over which hydrophobicity term turns from 0 to 1
   double Kpert;
@@ -75,6 +76,7 @@ class Probe
   void calculate_C();
 
   //Hydrophobicity score
+  double hydrophobicity_numerator; //denominator is total_enclosure
   double hydrophobicity;
   vector<double> d_hydrophobicity_dx;
   vector<double> d_hydrophobicity_dy;
@@ -116,7 +118,7 @@ class Probe
           double RMax, double DeltaRmax, 
           double phimin, double deltaphi, 
           double psimin, double deltapsi,
-          double hmin, double deltah,
+          double hmin, double deltah, vector<double> h_coeff,
           double kpert, double kxplor, unsigned Pertstride,
           unsigned N_atoms);
     

@@ -21,7 +21,7 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
             double RMax, double DeltaRmax, 
             double phimin, double deltaphi, 
             double psimin, double deltapsi,
-            double hmin, double deltah,
+            double hmin, double deltah, vector<double> h_coeff,
             double kpert, double kxplor, unsigned Pertstride,
             unsigned N_atoms)
 {
@@ -39,6 +39,7 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
   deltaP=deltapsi;
   Hmin=hmin;
   deltaH=deltah;
+  H_coeff=h_coeff; // hydrophobicity coefficients for each atom in the PDB file
   Kpert=kpert;
   Kxplor=kxplor;
   pertstride=Pertstride;
@@ -325,19 +326,46 @@ void Probe::calculate_C()
 
 void Probe::calculate_hydrophobicity()
 {
+  hydrophobicity_numerator=0;
   hydrophobicity=0;
   d_hydrophobicity_dx=vector<double>(n_atoms,0);
   d_hydrophobicity_dy=vector<double>(n_atoms,0);
   d_hydrophobicity_dz=vector<double>(n_atoms,0);
+  for (unsigned j=0; j<n_atoms; j++)
+  {
+   hydrophobicity_numerator+=H_coeff[j]*enclosure[j];
+   d_hydrophobicity_dx[j]+=H_coeff[j]*d_enclosure_dx[j];
+   d_hydrophobicity_dy[j]+=H_coeff[j]*d_enclosure_dy[j];
+   d_hydrophobicity_dz[j]+=H_coeff[j]*d_enclosure_dz[j];
+  }
+
+  hydrophobicity=hydrophobicity_numerator/total_enclosure;
+  for (unsigned j=0; j<n_atoms; j++)
+  {
+    d_hydrophobicity_dx[j]=(d_hydrophobicity_dx[j]*total_enclosure-d_enclosure_dx[j]*hydrophobicity_numerator)/(total_enclosure*total_enclosure);
+    d_hydrophobicity_dy[j]=(d_hydrophobicity_dy[j]*total_enclosure-d_enclosure_dy[j]*hydrophobicity_numerator)/(total_enclosure*total_enclosure);
+    d_hydrophobicity_dz[j]=(d_hydrophobicity_dz[j]*total_enclosure-d_enclosure_dz[j]*hydrophobicity_numerator)/(total_enclosure*total_enclosure);
+  }
+
   return;
 }
 
 void Probe::calculate_H()
 {
-  H=1;
-  dH_dx=vector<double>(n_atoms,0);
-  dH_dy=vector<double>(n_atoms,0);
-  dH_dz=vector<double>(n_atoms,0);
+  calculate_hydrophobicity();
+  double m_hydrophobicity=COREFUNCTIONS::m_v(hydrophobicity,Hmin,deltaH);
+  double dm_hydrophobicity=COREFUNCTIONS::dm_dv(deltaH);
+  H=COREFUNCTIONS::Son_m(m_hydrophobicity,1);
+  if (dxcalc)
+  {
+   for (unsigned j=0; j<n_atoms; j++)
+   {
+    dH_dx[j]=COREFUNCTIONS::dSon_dm(m_hydrophobicity,1)*dm_hydrophobicity*d_hydrophobicity_dx[j];
+    dH_dy[j]=COREFUNCTIONS::dSon_dm(m_hydrophobicity,1)*dm_hydrophobicity*d_hydrophobicity_dy[j];
+    dH_dz[j]=COREFUNCTIONS::dSon_dm(m_hydrophobicity,1)*dm_hydrophobicity*d_hydrophobicity_dz[j];
+   }
+  }
+  //cout << "H = " << H << endl;
   return;
 }
 
@@ -346,8 +374,7 @@ void Probe::calculate_activity(vector<double> atoms_x, vector<double> atoms_y, v
 {
  calculate_r(atoms_x,atoms_y,atoms_z);
  calculate_C();
- calculate_P();
- calculate_H();
+ calculate_P(); calculate_H(); // calculate_hydrophobicity() uses the enclosure vector and its derivatives, so calculate_H() must be called after calculate_P()
  activity=C*P*H;
  if (dxcalc)
  {

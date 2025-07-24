@@ -462,7 +462,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
                                Rmax, deltaRmax, 
                                Cmin, deltaC, 
                                Pmin, deltaP,
-                               Hmin, deltaH,
+                               Hmin, deltaH, h_coeff,
                                kpert, kxplor,pertstride,
                                n_atoms));
         cout << "Probe " << i << " initialised" << endl;
