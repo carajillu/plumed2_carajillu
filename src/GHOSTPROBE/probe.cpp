@@ -326,6 +326,20 @@ void Probe::calculate_C()
 
 void Probe::calculate_hydrophobicity()
 {
+  /*
+  hydrophobicity=0;
+  for (unsigned j=0; j<n_atoms; j++)
+  {
+   hydrophobicity+=H_coeff[j]*enclosure[j];
+   if (dxcalc)
+   {
+    d_hydrophobicity_dx[j]=H_coeff[j]*d_enclosure_dx[j];
+    d_hydrophobicity_dy[j]=H_coeff[j]*d_enclosure_dy[j];
+    d_hydrophobicity_dz[j]=H_coeff[j]*d_enclosure_dz[j];
+   }
+  }
+  */
+  
   hydrophobicity_numerator=0;
   hydrophobicity=0;
   d_hydrophobicity_dx=vector<double>(n_atoms,0);
@@ -510,6 +524,8 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
        wfile << step << " " << j << " " << atoms[j].index() << " " << Soff_r[j] << endl;
   }
   */
+  if (pertype.empty())
+   pertype="none";
   wfile << probe_id << " " << step << " " << pertype << " " << atoms[j_min_r].serial() << " " << min_r << " " 
         << total_enclosure << " " << P << " " 
         << total_clash << " " << C << " "
