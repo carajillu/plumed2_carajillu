@@ -67,6 +67,8 @@ if __name__ == "__main__":
     # Get ligand object from reference structure
     ref_obj=mdtraj.load(args.ref_structure)
     ligand_obj=get_ligand_obj(ref_obj,args.lig_selection)
+    if ligand_obj.n_atoms == 0:
+        raise ValueError("No atoms found in the ligand selection. Please check the selection string AND the reference structure.")
 
     # Load trajectory and reference structure, align trajectory to reference structure
     trj_obj=mdtraj.load(args.trajectory,top=args.topology)
