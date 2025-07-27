@@ -136,6 +136,7 @@ class Probe
     vector<double> d_activity_dprobe;
 
     void calculate_activity(vector<double> atoms_x, vector<double> atoms_y, vector<double> atoms_z);
+    void botch_derivatives(double Psi);
 
     void print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsigned n_atoms);
     void print_probe_xyz(int step);

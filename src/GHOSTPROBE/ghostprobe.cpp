@@ -82,6 +82,7 @@ namespace PLMD
       bool nocvcalc;
       bool nodxfix;
       bool noupdate;
+      bool botch_derivatives;
       double kpert=0;
       double kxplor=0;
       unsigned pertstride=0;
@@ -181,6 +182,7 @@ namespace PLMD
       keys.addFlag("PERFORMANCE", false, "measure execution time");
       keys.addFlag("DUMPDERIVATIVES", false, "print derivatives and corrections");
       keys.addFlag("RESTART_PROBES", false, "Restart probe positions from stored coordinates");
+      keys.addFlag("BOTCH_DERIVATIVES", false, "Botch the derivatives to separate them when using HARMONIC potentials ONLY");
       keys.add("atoms", "ATOMS", "Atoms to include in druggability calculations (start at 1)");
       keys.add("atoms", "DXCLUDE", "Atoms that will experience the GHOSTPROBE force");
       keys.add("atoms", "ATOMS_INIT", "Atoms in which the probes will be initially centered.");
@@ -247,6 +249,14 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
        wfile.open("performance_dxfix.txt");
        wfile << "torques A B Bcoot Bt c correction test total" << endl;
        wfile.close();
+      }
+
+      parseFlag("BOTCH_DERIVATIVES", botch_derivatives);
+      if (botch_derivatives)
+      {
+       cout << "*****************************************************************************************" << endl;
+       cout << "WARNING:Botching derivatives. Use ONLY with RESTRAINT and KAPPA as the biasing method!!!!" << endl;
+       cout << "*****************************************************************************************" << endl;
       }
 
       parseFlag("DUMPDERIVATIVES",dumpderivatives);
@@ -777,6 +787,10 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
          get_init_crd();
       
       if (performance and step%probestride==0) start_psi = high_resolution_clock::now();
+      
+      /////////////////////////////////////////////
+      // PSI score
+      //////////////////////////////////////////////
       #pragma omp parallel for 
       for (unsigned i = 0; i < nprobes; i++)
       {
@@ -793,12 +807,6 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
           #pragma omp critical //avoid race condition
           {
            Psi+=probes[i].activity/nprobes;
-           for (unsigned j=0;j<n_atoms;j++)
-           {
-             d_Psi_dx[j]+=probes[i].d_activity_dx[j]/nprobes;
-             d_Psi_dy[j]+=probes[i].d_activity_dy[j]/nprobes;
-             d_Psi_dz[j]+=probes[i].d_activity_dz[j]/nprobes;
-           }
           }
         }
 
@@ -809,9 +817,25 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
         if (step%probestride==0) probes[i].print_probe_xyz(step);
         if (kpert>0) probes[i].perturb_probe(step);
         if (step%probestride==0) probes[i].print_probe_movement(step,atoms,n_atoms);
-        
-        
       }
+      /////////////////////////////////////////////////
+      //DERIVATIVES
+      ////////////////////////////////////////////////
+      #pragma omp parallel for
+      for (unsigned i=0; i<nprobes; i++)
+      {
+       if (botch_derivatives) probes[i].botch_derivatives(Psi);
+       #pragma omp critical // avoid race condition
+       {
+         for (unsigned j=0;j<n_atoms;j++)
+         {
+          d_Psi_dx[j]+=probes[i].d_activity_dx[j]/nprobes;
+          d_Psi_dy[j]+=probes[i].d_activity_dy[j]/nprobes;
+          d_Psi_dz[j]+=probes[i].d_activity_dz[j]/nprobes;
+         }
+       }
+      }
+      
       if (performance and step%probestride==0)  end_psi = high_resolution_clock::now();
       
       // Set excluded derivatives to 0 (although we still need them to move the probe (?))

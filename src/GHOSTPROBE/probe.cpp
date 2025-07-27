@@ -407,6 +407,16 @@ void Probe::calculate_activity(vector<double> atoms_x, vector<double> atoms_y, v
  }
 }
 
+void Probe::botch_derivatives(double Psi)
+{
+ for (unsigned j=0; j<n_atoms;j++)
+ {
+  d_activity_dx[j]*=((activity-1)/(Psi-1));
+  d_activity_dy[j]*=((activity-1)/(Psi-1));
+  d_activity_dz[j]*=((activity-1)/(Psi-1));
+ }
+}
+
 void Probe::kabsch()
 {
  //Obtain rotmat with Kabsch Algorithm
