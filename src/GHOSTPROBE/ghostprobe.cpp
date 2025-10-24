@@ -157,6 +157,7 @@ namespace PLMD
       arma::vec c;
 
       double err_tol=1e-8;
+      unsigned null_fails=0;
       bool dumpderivatives;
 
     public:
@@ -597,7 +598,18 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       //cout << "Matrix ops" << endl;
       //Apply https://math.stackexchange.com/questions/4686718/how-to-solve-a-linear-system-with-more-variables-than-equations-with-constraints/4686826#4686826
       if (performance and step%probestride==0)  start_B = high_resolution_clock::now();
-      B=arma::null(A);
+      bool null_pass=arma::null(B,A);
+      if (!null_pass)
+      {
+        cout << "Null space of A could not be calculated at step" << step << " (likely a fail of arma::svd())" << endl;
+        null_fails++;
+        return;
+      }
+      if (null_fails>=10000)
+      {
+        cout << "To many fails of arma::null. Aborting calculation." << endl;
+      }
+
       if (performance and step%probestride==0)  end_B = high_resolution_clock::now();
 
       if (performance and step%probestride==0)  start_Bt = high_resolution_clock::now();
