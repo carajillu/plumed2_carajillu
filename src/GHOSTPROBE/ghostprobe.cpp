@@ -115,7 +115,11 @@ namespace PLMD
       double kappa=0;
       vector<double> force_x, force_y, force_z;
       vector<double> torque_x, torque_y, torque_z;
-      arma::mat A;
+      // we need to solve c=At*inv(A*At)*L
+      arma::mat A;  // dim=6,3*n_atoms
+      arma::mat At; // dim=3*n_atoms,6
+      arma::vec L;  // dim=6
+      arma::vec c;  // 3*n_atoms
 
       double err_tol=1e-8;
       unsigned null_fails=0;
@@ -458,7 +462,20 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
         torque_x=vector<double>(n_atoms,0);
         torque_y=vector<double>(n_atoms,0);
         torque_z=vector<double>(n_atoms,0);
-        A=arma::mat(6,n_atoms,arma::fill::zeros);
+        // Accessing individual elements tends to be slow, so we set most of the matrix here (see overleaf Thesis 2020 for equations)
+        // Most elements are always 0 and 1, the only ones that change are set in correct_derivatives()
+        A=arma::mat(6,3*n_atoms,arma::fill::zeros);
+        for (unsigned j=0; j<n_atoms;j++)
+        {
+         A.row(0).col(j+ 0*n_atoms) = 1.0; //cx coefficients
+         A.row(1).col(j+ 1*n_atoms) = 1.0; //cy coefficients
+         A.row(2).col(j+ 2*n_atoms) = 1.0; //cz coefficients
+        }
+        At=arma::mat(3*n_atoms,6);
+        L.zeros(6); 
+        c.zeros(3*n_atoms);
+
+
       }
       else
       {
@@ -495,7 +512,9 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
     #pragma omp parallel for
     for (unsigned j=0; j<n_atoms; j++)
     {
-     // individual forces
+     // individual forces. 
+     // these are calculated the way PLUMED calculates them (bacause those are the forces/torques we want to remove)
+     // this is independent of wether or not we botch, but only works if using a harmonic potential
      double fxij=-kappa*(Psi-1)*d_Psi_dx[j];
      double fyij=-kappa*(Psi-1)*d_Psi_dy[j];
      double fzij=-kappa*(Psi-1)*d_Psi_dz[j];
@@ -504,8 +523,72 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
      force_z[j]+=fzij;
      torque_x[j]+=atoms_y[j]*fzij-atoms_z[j]*fyij;
      torque_y[j]+=atoms_z[j]*fxij-atoms_x[j]*fzij;
-     torque_x[j]+=atoms_x[j]*fyij-atoms_y[j]*fxij;
+     torque_z[j]+=atoms_x[j]*fyij-atoms_y[j]*fxij;
     }
+
+    // Build matrix A (see equations on Thesis2020 overleaf)
+    for (unsigned j=0; j<n_atoms;j++)
+    {
+     //cx coefficients
+     A.row(4).col(j+ 0*n_atoms) = atoms_z[j];
+     A.row(5).col(j+ 0*n_atoms) = -atoms_y[j];
+     //cy coefficients 
+     A.row(3).col(j+ 1*n_atoms) = -atoms_z[j];
+     A.row(5).col(j+ 1*n_atoms) = atoms_x[j];
+     //cz coefficients
+     A.row(3).col(j+ 2*n_atoms) = atoms_y[j];
+     A.row(4).col(j+ 2*n_atoms) = -atoms_x[j];
+    }
+    // Transpose A
+    At=arma::trans(A);
+    // Build vector L
+    L.zeros();
+    for (unsigned j=0; j<n_atoms; j++)
+    {
+      L[0]-=force_x[j];
+      L[1]-=force_y[j];
+      L[2]-=force_z[j];
+      L[3]-=torque_x[j];
+      L[4]-=torque_y[j];
+      L[5]-=torque_z[j];
+    }
+    cout << "L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
+
+    //get constants
+    arma::vec c = At*arma::inv(A*At)*L;
+    
+    // apply correction
+    for (unsigned j = 0; j < n_atoms; j++)
+    {
+     //cout << c[j + 0 * n_atoms] << " "<< c[j + 1 * n_atoms] << " "<< c[j + 2 * n_atoms] << endl;
+     d_Psi_dx[j] += c[j + 0 * n_atoms]/(-kappa*(Psi-1));
+     d_Psi_dy[j] += c[j + 1 * n_atoms]/(-kappa*(Psi-1));
+     d_Psi_dz[j] += c[j + 2 * n_atoms]/(-kappa*(Psi-1));
+    }
+
+    L.zeros();
+    for (unsigned j=0; j<n_atoms; j++)
+    {
+     double fxij=-kappa*(Psi-1)*d_Psi_dx[j];
+     double fyij=-kappa*(Psi-1)*d_Psi_dy[j];
+     double fzij=-kappa*(Psi-1)*d_Psi_dz[j];
+     L[0]+=fxij;
+     L[1]+=fyij;
+     L[2]+=fzij;
+     L[3]+=atoms_y[j]*fzij-atoms_z[j]*fyij;
+     L[4]+=atoms_z[j]*fxij-atoms_x[j]*fzij;
+     L[5]+=atoms_x[j]*fyij-atoms_y[j]*fxij;
+    }
+     
+    cout << "Removed net forces and torques. New L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
+    force_x.clear();
+    force_y.clear();
+    force_z.clear();
+    torque_x.clear();
+    torque_y.clear();
+    torque_z.clear();
+
+
     ofstream wfile;
     wfile.open("derivatives.csv",std::ios_base::app);
     for (unsigned j=0; j<n_atoms; j++)
