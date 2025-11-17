@@ -55,26 +55,17 @@ namespace PLMD
       int ndev=0;         // number of available OMP accelerators
       //calculation speed
       bool performance;
-      time_point<high_resolution_clock> start_psi;
-      time_point<high_resolution_clock> end_psi;
-      time_point<high_resolution_clock> start_dxfix;
-      time_point<high_resolution_clock> end_dxfix;
+      time_point<high_resolution_clock> start_psi, end_psi;
+      time_point<high_resolution_clock> start_dxfix, end_dxfix;
 
       // All of these are just for correct_derivatives()
-      time_point<high_resolution_clock> start_tor;
-      time_point<high_resolution_clock> end_tor;
-      time_point<high_resolution_clock> start_A;
-      time_point<high_resolution_clock> end_A;
-      time_point<high_resolution_clock> start_B;
-      time_point<high_resolution_clock> end_B;
-      time_point<high_resolution_clock> start_Bt;
-      time_point<high_resolution_clock> end_Bt;
-      time_point<high_resolution_clock> start_c;
-      time_point<high_resolution_clock> end_c;
-      time_point<high_resolution_clock> start_correction;
-      time_point<high_resolution_clock> end_correction;
-      time_point<high_resolution_clock> start_test;
-      time_point<high_resolution_clock> end_test;
+      time_point<high_resolution_clock> start_tor, end_tor;
+      time_point<high_resolution_clock> start_A, end_A;
+      time_point<high_resolution_clock> start_B, end_B;
+      time_point<high_resolution_clock> start_Bt, end_Bt;
+      time_point<high_resolution_clock> start_c, end_c;
+      time_point<high_resolution_clock> start_correction, end_correction;
+      time_point<high_resolution_clock> start_test, end_test;
 
       // MD control variables
       bool pbc;
@@ -90,29 +81,19 @@ namespace PLMD
       PDB lig_pdb;
       PDB atoms_pdb; //pdb with the involved atoms and their hydrophobicity coefficients as 
       bool restart_probes;
-      int restart_frame=0;
       // Parameters
-      double Rmin=0;          // mind below which an atom is considered to be clashing with the probe
-      double deltaRmin=0;        // interval over which contact terms are turned on and off
-      double Rmax=0;          // distance above which an atom is considered to be too far away from the probe*
-      double deltaRmax=0;        // interval over which contact terms are turned on and off
-      double Pmin=0;           // packing factor below which depth term equals 0
-      double deltaP=0;         // interval over which depth term turns from 0 to 1
-      double Cmin=0;           // packing factor below which depth term equals 0
-      double deltaC=0;         // interval over which depth term turns from 0 to 1
-      double Hmin=0;           // hydrophobicity factor below which depth term equals 0
-      double deltaH=0;         // interval over which hydrophobicity term turns from
-      vector<double> h_coeff; // hydrophobicity coefficients for each atom in the PDB file
-      
+      double Rmin=0, deltaRmin=0;
+      double Rmax=0, deltaRmax=0;
+      double Pmin=0, deltaP=0;
+      double Cmin=0, deltaC=0;
+      double Hmin=0, deltaH=0;
+      vector<double> h_coeff;
 
       // Set up of CV
       vector<PLMD::AtomNumber> atoms; // indices of atoms supplied to the CV (starts at 1)
-      vector<PLMD::AtomNumber> dxclude; // indices of atoms that will experience the GHOSTPROBE force
       unsigned n_atoms=0;               // number of atoms supplied to the CV
-      unsigned n_dxclude=0;               // number of atoms that will experience the GHOSTPROBE force
-      vector<double> atoms_x;
-      vector<double> atoms_y;
-      vector<double> atoms_z;
+      vector<double> atoms_x, atoms_y, atoms_z;
+      
       unsigned step=0;
 
       vector<PLMD::AtomNumber> atoms_init; // Indices of the atoms in which the probes will be initially centered
@@ -128,15 +109,10 @@ namespace PLMD
       // Calculation of CV and its derivatives
 
       double Psi=0;
-      vector<double> d_Psi_dx;
-      vector<double> d_Psi_dy;
-      vector<double> d_Psi_dz;
-      vector<unsigned> dxclude_idx; // 1 if derivative needs to be calculated, 0 otherwise
+      vector<double> d_Psi_dx, d_Psi_dy, d_Psi_dz;
 
       // Correction of derivatives
-      vector<double> tx;
-      vector<double> ty;
-      vector<double> tz;
+      vector<double> tx, ty, tz;
       vector<bool> dxnonull;
       unsigned dxnonull_size;
       double sum_d_dx;
@@ -185,7 +161,6 @@ namespace PLMD
       keys.addFlag("RESTART_PROBES", false, "Restart probe positions from stored coordinates");
       keys.addFlag("BOTCH_DERIVATIVES", false, "Botch the derivatives to separate them when using HARMONIC potentials ONLY");
       keys.add("atoms", "ATOMS", "Atoms to include in druggability calculations (start at 1)");
-      keys.add("atoms", "DXCLUDE", "Atoms that will experience the GHOSTPROBE force");
       keys.add("atoms", "ATOMS_INIT", "Atoms in which the probes will be initially centered.");
       keys.add("optional","PDB","PDB file of the atoms involved, for hydrophobicity calculations");
       keys.add("optional", "NPROBES", "Number of probes to use");
@@ -204,7 +179,6 @@ namespace PLMD
       keys.add("optional", "KXPLOR", "");
       keys.add("optional", "PERTSTRIDE", "Do a full KPERT random perturbation every PERTSTRIDE steps");
       keys.add("optional","REF_LIG","Coordinates od reference ligand atoms to place the probes on.");
-      keys.add("optional", "RESTART_FRAME", "");
     }
 
     Ghostprobe::Ghostprobe(const ActionOptions &ao) : PLUMED_COLVAR_INIT(ao),
@@ -270,31 +244,10 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       }
 
       parseFlag("RESTART_PROBES",restart_probes);
-      if (restart_probes)
-      {
-       parse("RESTART_FRAME", restart_frame);
-       if (!restart_frame)
-         restart_frame=0;  
-      }
 
       parseAtomList("ATOMS", atoms);
       n_atoms = atoms.size();
       
-      parseAtomList("DXCLUDE", dxclude);
-      n_dxclude = dxclude.size();
-      cout << "Excluding " << n_dxclude << " atoms from derivative calculations" << endl;
-      for (unsigned j=0;j<n_atoms;j++)
-      {
-        int dxclude_j=aidefunctions::findIndex(dxclude,atoms[j]);
-        if (dxclude_j==-1)
-        {
-          dxclude_idx.push_back(0);
-        }
-        else
-        {
-          dxclude_idx.push_back(1);
-        }
-      }
 
       parse("NPROBES", nprobes);
       if (!nprobes)
@@ -725,14 +678,14 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
 
       if (restart_probes) //restart probes from input coordinates
       {
-       vector<vector<double>> protein_xyz=aidefunctions::read_xyz("protein.xyz",restart_frame);
+       vector<vector<double>> protein_xyz=aidefunctions::read_xyz("protein.xyz",0);
        for (unsigned i=0; i<nprobes; i++)
        {
         cout << "Restarting probe " << i << endl;
         string filename = "probe-";
         filename.append(to_string(i));
         filename.append(".xyz");
-        vector<vector<double>> probe_xyz=aidefunctions::read_xyz(filename,restart_frame);
+        vector<vector<double>> probe_xyz=aidefunctions::read_xyz(filename,0);
         x=probe_xyz[0][0];
         y=probe_xyz[0][1];
         z=probe_xyz[0][2];
@@ -852,16 +805,6 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       
       if (performance and step%probestride==0)  end_psi = high_resolution_clock::now();
       
-      // Set excluded derivatives to 0 (although we still need them to move the probe (?))
-      for (unsigned j=0;j<n_atoms;j++)
-      {
-        if (dxclude_idx[j]==1)
-        {
-          d_Psi_dx[j]=0;
-          d_Psi_dy[j]=0;
-          d_Psi_dz[j]=0;
-        }
-      }
       //Correct the Psi derivatives so that they sum 0
       if (!nodxfix)
       {
