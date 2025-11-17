@@ -366,6 +366,8 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       }
       else
       {
+        /* This is using push_back(), so the coefficients are in the right order
+         even if the atom numbers in the pdb file are not correct (trjconv restarts them and puts them in order)*/
         atoms_pdb.read(pdb_protein, usingNaturalUnits(), 0.1/getUnits().getLength());
         const std::vector<AtomNumber>& atom_numbers = atoms_pdb.getAtomNumbers();
         for (const auto& atom_num : atom_numbers)
@@ -409,7 +411,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
         Cmin = 0.; 
       cout << "CMIN = " << Cmin << endl;
 
-      parse("DELTAC", deltaC);
+      parse("DELTAC", deltaC); 
       if (!deltaC)
         deltaC = 5; 
       cout << "DELTAC = " << deltaC << endl;
