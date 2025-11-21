@@ -570,6 +570,33 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
 
     //get constants
     arma::vec c = At*arma::pinv(A*At)*L;
+
+    // Print corrections (before applying so we can see actual effect)
+    if (dumpderivatives and step%probestride==0)
+    {
+     ofstream wfile;
+     wfile.open("forces_torques.csv",std::ios_base::app);
+     for (unsigned j=0; j<n_atoms; j++)
+     {
+       wfile << step << " " << j << " " 
+             << force_x[j] << " " << force_y[j] << " " << force_z[j] << " " 
+             << torque_x[j] << " " << torque_y[j] << " " << torque_z[j] << " "
+             << -kappa*(Psi-1)*c[j + 0 * n_atoms] << " " << -kappa*(Psi-1)*c[j + 1 * n_atoms] << " "<< -kappa*(Psi-1)*c[j + 2 * n_atoms] << " "
+             << endl;
+     }
+     wfile.close();
+
+     wfile.open("derivatives.csv",std::ios_base::app);
+     for (unsigned j=0; j<n_atoms; j++)
+     {
+       wfile << step << " " << j << " " 
+             << d_Psi_dx[j] << " " << d_Psi_dy[j] << " " << d_Psi_dz[j] << " "
+             << c[j + 0 * n_atoms] << " " << c[j + 1 * n_atoms] << " "<< c[j + 2 * n_atoms] << " "
+             << endl;
+     }
+     wfile.close();
+    }
+
     
     // apply correction
     for (unsigned j = 0; j < n_atoms; j++)
@@ -601,31 +628,6 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       cout << "Sum forces: "  << L[0] << " " << L[1] << " " << L[2] << endl;
       cout << "Sum torques: " << L[3] << " " << L[4] << " " << L[5] << endl;
       exit(0);
-    }
-
-    if (dumpderivatives and step%probestride==0)
-    {
-     ofstream wfile;
-     wfile.open("forces_torques.csv",std::ios_base::app);
-     for (unsigned j=0; j<n_atoms; j++)
-     {
-       wfile << step << " " << j << " " 
-             << force_x[j] << " " << force_y[j] << " " << force_z[j] << " " 
-             << torque_x[j] << " " << torque_y[j] << " " << torque_z[j] << " "
-             << -kappa*(Psi-1)*c[j + 0 * n_atoms] << " " << -kappa*(Psi-1)*c[j + 1 * n_atoms] << " "<< -kappa*(Psi-1)*c[j + 2 * n_atoms] << " "
-             << endl;
-     }
-     wfile.close();
-
-     wfile.open("derivatives.csv",std::ios_base::app);
-     for (unsigned j=0; j<n_atoms; j++)
-     {
-       wfile << step << " " << j << " " 
-             << d_Psi_dx[j] << " " << d_Psi_dy[j] << " " << d_Psi_dz[j] << " "
-             << c[j + 0 * n_atoms] << " " << c[j + 1 * n_atoms] << " "<< c[j + 2 * n_atoms] << " "
-             << endl;
-     }
-     wfile.close();
     }
      
     //cout << "Removed net forces and torques. New L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
