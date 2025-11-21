@@ -58,7 +58,7 @@ namespace PLMD
       time_point<high_resolution_clock> start_psi, end_psi;
       time_point<high_resolution_clock> start_dxfix, end_dxfix;
 
-      // All of these are just for correct_derivatives()
+      // All of these are just for remove_netforcetorque()
       time_point<high_resolution_clock> start_tor, end_tor;
       time_point<high_resolution_clock> start_A, end_A;
       time_point<high_resolution_clock> start_B, end_B;
@@ -112,6 +112,7 @@ namespace PLMD
       vector<double> d_Psi_dx, d_Psi_dy, d_Psi_dz;
 
       // Correction of derivatives
+      unsigned torquestride=0;
       double kappa=0;
       vector<double> force_x, force_y, force_z;
       vector<double> torque_x, torque_y, torque_z;
@@ -130,7 +131,7 @@ namespace PLMD
       // active methods:
       void calculate() override;
       void reset();
-      void correct_derivatives();
+      void remove_netforcetorque();
       void print_protein();
       void get_init_crd();
       static void registerKeywords(Keywords &keys);
@@ -169,6 +170,7 @@ namespace PLMD
       keys.add("optional", "PERTSTRIDE", "Do a full KPERT random perturbation every PERTSTRIDE steps");
       keys.add("optional","REF_LIG","Coordinates od reference ligand atoms to place the probes on.");
       keys.add("optional", "KAPPA", "");
+      keys.add("optional", "TORQUESTRIDE", "stride for removal of accummulated forces and torques");
     }
 
     Ghostprobe::Ghostprobe(const ActionOptions &ao) : PLUMED_COLVAR_INIT(ao),
@@ -229,7 +231,11 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       {
         ofstream wfile;
         wfile.open("derivatives.csv");
-        wfile << "Step Atom dx dy dz tx ty tz correction" << endl;
+        wfile << "Step Atom dx dy dz cx cy cz" << endl;
+        wfile.close();
+
+        wfile.open("forces_torques.csv");
+        wfile << "Step Atom fx fy fz tx ty tz fcx fcy fcz" << endl;
         wfile.close();
       }
 
@@ -456,6 +462,13 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
           throw std::invalid_argument("Net force and toorque correction has been requested, but the harmonic force constant has not been provided. \
             Please provide the same KAPPA you provided in RESTRAINT (and if you are not using RESTRAINT with KAPPA, this won't work)");
         }
+        parse("TORQUESTRIDE",torquestride);
+        if (!torquestride)
+        {
+          torquestride=1;
+          cout << "WARNING: Removing net forces and torques at every step. This will be slow." << endl;
+        }
+
         force_x=vector<double>(n_atoms,0);
         force_y=vector<double>(n_atoms,0);
         force_z=vector<double>(n_atoms,0);
@@ -463,7 +476,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
         torque_y=vector<double>(n_atoms,0);
         torque_z=vector<double>(n_atoms,0);
         // Accessing individual elements tends to be slow, so we set most of the matrix here (see overleaf Thesis 2020 for equations)
-        // Most elements are always 0 and 1, the only ones that change are set in correct_derivatives()
+        // Most elements are always 0 and 1, the only ones that change are set in remove_netforcetorque()
         A=arma::mat(6,3*n_atoms,arma::fill::zeros);
         for (unsigned j=0; j<n_atoms;j++)
         {
@@ -497,7 +510,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       fill(d_Psi_dz.begin(), d_Psi_dz.end(), 0);
     }
 
-    void Ghostprobe::correct_derivatives()
+    void Ghostprobe::remove_netforcetorque()
     {
      /*
      1) Calculate net force on each atom per probe (needs KAPPA and derivative with respect to atom/coordinate per probe)
@@ -545,15 +558,15 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
     L.fill(0);
     for (unsigned j=0; j<n_atoms; j++)
     {
-      L[0]-=force_x[j];///(kappa*(Psi-1));
-      L[1]-=force_y[j];///(kappa*(Psi-1));
-      L[2]-=force_z[j];///(kappa*(Psi-1));
-      L[3]-=torque_x[j];///(kappa*(Psi-1));
-      L[4]-=torque_y[j];///(kappa*(Psi-1));
-      L[5]-=torque_z[j];///(kappa*(Psi-1));
+      L[0]-=force_x[j];
+      L[1]-=force_y[j];
+      L[2]-=force_z[j];
+      L[3]-=torque_x[j];
+      L[4]-=torque_y[j];
+      L[5]-=torque_z[j];
     }
     L/=-kappa*(Psi-1);
-    cout << "L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
+    //cout << "Step " << step << ": L, before correction: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
 
     //get constants
     arma::vec c = At*arma::pinv(A*At)*L;
@@ -567,6 +580,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
      d_Psi_dz[j] += c[j + 2 * n_atoms];
     }
 
+    // check results
     L.fill(0);
     for (unsigned j=0; j<n_atoms; j++)
     {
@@ -580,23 +594,47 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
      L[4]+=atoms_z[j]*fxij-atoms_x[j]*fzij;
      L[5]+=atoms_x[j]*fyij-atoms_y[j]*fxij;
     }
-
-    ofstream wfile;
-    wfile.open("derivatives.csv",std::ios_base::app);
-    for (unsigned j=0; j<n_atoms; j++)
+    if (L[0]>1e-8 or L[1]>1e-8 or L[2]>1e-8 or
+        L[3]>1e-8 or L[4]>1e-8 or L[5]>1e-8)
     {
-      wfile << step << " " << j << " " << force_x[j] << " " << force_y[j] << " " << force_z[j] << " " 
-                        << torque_x[j] << " " << torque_y[j] << " " << torque_z[j] << 0 << endl;
+      cout << "Error: Removal of net forces and torques failed. Simulation will now end." << endl;
+      cout << "Sum forces: "  << L[0] << " " << L[1] << " " << L[2] << endl;
+      cout << "Sum torques: " << L[3] << " " << L[4] << " " << L[5] << endl;
+      exit(0);
+    }
+
+    if (dumpderivatives)
+    {
+     ofstream wfile;
+     wfile.open("forces_torques.csv",std::ios_base::app);
+     for (unsigned j=0; j<n_atoms; j++)
+     {
+       wfile << step << " " << j << " " 
+             << force_x[j] << " " << force_y[j] << " " << force_z[j] << " " 
+             << torque_x[j] << " " << torque_y[j] << " " << torque_z[j] << " "
+             << -kappa*(Psi-1)*c[j + 0 * n_atoms] << " " << -kappa*(Psi-1)*c[j + 1 * n_atoms] << " "<< -kappa*(Psi-1)*c[j + 2 * n_atoms] << " "
+             << endl;
+     }
+     wfile.close();
+
+     wfile.open("derivatives.csv",std::ios_base::app);
+     for (unsigned j=0; j<n_atoms; j++)
+     {
+       wfile << step << " " << j << " " 
+             << d_Psi_dx[j] << " " << d_Psi_dy[j] << " " << d_Psi_dz[j] << " "
+             << c[j + 0 * n_atoms] << " " << c[j + 1 * n_atoms] << " "<< c[j + 2 * n_atoms] << " "
+             << endl;
+     }
+     wfile.close();
     }
      
-    cout << "Removed net forces and torques. New L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
+    //cout << "Removed net forces and torques. New L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
     fill(force_x.begin(), force_x.end(), 0.0);
     fill(force_y.begin(), force_y.end(), 0.0);
     fill(force_z.begin(), force_z.end(), 0.0);
     fill(torque_x.begin(), torque_x.end(), 0.0);
     fill(torque_y.begin(), torque_y.end(), 0.0);
     fill(torque_z.begin(), torque_z.end(), 0.0);
-
 
     return;
     }
@@ -758,9 +796,9 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       if (performance and step%probestride==0)  end_psi = high_resolution_clock::now();
       
       //Correct the Psi derivatives so that they sum 0
-      if (!nodxfix)
+      if (!nodxfix and step%torquestride==0)
       {
-       correct_derivatives();
+       remove_netforcetorque();
       }
    
       //Send Psi and derivatives back to Plumed
