@@ -603,7 +603,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       exit(0);
     }
 
-    if (dumpderivatives)
+    if (dumpderivatives and step%probestride==0)
     {
      ofstream wfile;
      wfile.open("forces_torques.csv",std::ios_base::app);
