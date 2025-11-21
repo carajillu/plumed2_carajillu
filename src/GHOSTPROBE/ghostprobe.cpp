@@ -472,8 +472,8 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
          A.row(2).col(j+ 2*n_atoms) = 1.0; //cz coefficients
         }
         At=arma::mat(3*n_atoms,6);
-        L.zeros(6); 
-        c.zeros(3*n_atoms);
+        L=arma::vec(6,arma::fill::zeros); 
+        c=arma::vec(3*n_atoms,arma::fill::zeros);
 
 
       }
@@ -542,7 +542,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
     // Transpose A
     At=arma::trans(A);
     // Build vector L
-    L.zeros();
+    L.fill(0);
     for (unsigned j=0; j<n_atoms; j++)
     {
       L[0]-=force_x[j];///(kappa*(Psi-1));
@@ -552,6 +552,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       L[4]-=torque_y[j];///(kappa*(Psi-1));
       L[5]-=torque_z[j];///(kappa*(Psi-1));
     }
+    L/=-kappa*(Psi-1);
     cout << "L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
 
     //get constants
@@ -566,7 +567,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
      d_Psi_dz[j] += c[j + 2 * n_atoms];
     }
 
-    L.zeros();
+    L.fill(0);
     for (unsigned j=0; j<n_atoms; j++)
     {
      double fxij=-kappa*(Psi-1)*d_Psi_dx[j];
