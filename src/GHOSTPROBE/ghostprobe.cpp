@@ -545,25 +545,25 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
     L.zeros();
     for (unsigned j=0; j<n_atoms; j++)
     {
-      L[0]-=force_x[j];
-      L[1]-=force_y[j];
-      L[2]-=force_z[j];
-      L[3]-=torque_x[j];
-      L[4]-=torque_y[j];
-      L[5]-=torque_z[j];
+      L[0]-=force_x[j];///(kappa*(Psi-1));
+      L[1]-=force_y[j];///(kappa*(Psi-1));
+      L[2]-=force_z[j];///(kappa*(Psi-1));
+      L[3]-=torque_x[j];///(kappa*(Psi-1));
+      L[4]-=torque_y[j];///(kappa*(Psi-1));
+      L[5]-=torque_z[j];///(kappa*(Psi-1));
     }
     cout << "L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
 
     //get constants
-    arma::vec c = At*arma::inv(A*At)*L;
+    arma::vec c = At*arma::pinv(A*At)*L;
     
     // apply correction
     for (unsigned j = 0; j < n_atoms; j++)
     {
      //cout << c[j + 0 * n_atoms] << " "<< c[j + 1 * n_atoms] << " "<< c[j + 2 * n_atoms] << endl;
-     d_Psi_dx[j] += c[j + 0 * n_atoms]/(-kappa*(Psi-1));
-     d_Psi_dy[j] += c[j + 1 * n_atoms]/(-kappa*(Psi-1));
-     d_Psi_dz[j] += c[j + 2 * n_atoms]/(-kappa*(Psi-1));
+     d_Psi_dx[j] += c[j + 0 * n_atoms];
+     d_Psi_dy[j] += c[j + 1 * n_atoms];
+     d_Psi_dz[j] += c[j + 2 * n_atoms];
     }
 
     L.zeros();
@@ -579,15 +579,6 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
      L[4]+=atoms_z[j]*fxij-atoms_x[j]*fzij;
      L[5]+=atoms_x[j]*fyij-atoms_y[j]*fxij;
     }
-     
-    cout << "Removed net forces and torques. New L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
-    force_x.clear();
-    force_y.clear();
-    force_z.clear();
-    torque_x.clear();
-    torque_y.clear();
-    torque_z.clear();
-
 
     ofstream wfile;
     wfile.open("derivatives.csv",std::ios_base::app);
@@ -596,7 +587,17 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       wfile << step << " " << j << " " << force_x[j] << " " << force_y[j] << " " << force_z[j] << " " 
                         << torque_x[j] << " " << torque_y[j] << " " << torque_z[j] << 0 << endl;
     }
-     return;
+     
+    cout << "Removed net forces and torques. New L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
+    fill(force_x.begin(), force_x.end(), 0.0);
+    fill(force_y.begin(), force_y.end(), 0.0);
+    fill(force_z.begin(), force_z.end(), 0.0);
+    fill(torque_x.begin(), torque_x.end(), 0.0);
+    fill(torque_y.begin(), torque_y.end(), 0.0);
+    fill(torque_z.begin(), torque_z.end(), 0.0);
+
+
+    return;
     }
 
     void Ghostprobe::print_protein()
