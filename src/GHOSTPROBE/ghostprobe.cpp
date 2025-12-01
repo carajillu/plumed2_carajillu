@@ -36,6 +36,8 @@
 // CV modules
 #include "probe.h"
 
+#define zero_tolerance 1e-14 // zero_tol set to 1e-14
+
 using namespace std;
 using namespace std::chrono;
 
@@ -123,9 +125,8 @@ namespace PLMD
       arma::mat At; // dim=3*n_atoms,6
       arma::vec L;  // dim=6
       arma::vec c;  // 3*n_atoms
-
-      double err_tol=1e-8;
-      unsigned null_fails=0;
+      vector<unsigned> dxnonull;
+      unsigned dxnonull_total=0;
       bool dumpderivatives;
 
     public:
@@ -238,6 +239,10 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
 
         wfile.open("forces_torques.csv");
         wfile << "Step Atom fx fy fz tx ty tz fx_t fy_t fz_t tx_t ty_t tz_t fcx fcy fcz" << endl;
+        wfile.close();
+
+        wfile.open("residuals.csv");
+        wfile << "Step fx fy fz tx ty tz" << endl;
         wfile.close();
       }
 
@@ -486,17 +491,10 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
         // Accessing individual elements tends to be slow, so we set most of the matrix here (see overleaf Thesis 2020 for equations)
         // Most elements are always 0 and 1, the only ones that change are set in remove_netforcetorque()
         A=arma::mat(6,3*n_atoms,arma::fill::zeros);
-        for (unsigned j=0; j<n_atoms;j++)
-        {
-         A(0,j+ 0*n_atoms) = 1.0; //cx coefficients
-         A(1,j+ 1*n_atoms) = 1.0; //cy coefficients
-         A(2,j+ 2*n_atoms) = 1.0; //cz coefficients
-        }
         At=arma::mat(3*n_atoms,6);
         L=arma::vec(6,arma::fill::zeros); 
         c=arma::vec(3*n_atoms,arma::fill::zeros);
-
-
+        dxnonull=vector<unsigned>(n_atoms,0);
       }
       else
       {
@@ -547,6 +545,8 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
     // If it's not time to correct, accummulate and return
     if (step%torquestride!=0)
     {
+      if (fabs(Psi-1)<zero_tolerance)
+         return;
       //cout << " Step " << step << ": Accummulating and returning" << endl;
       for (unsigned j=0; j<n_atoms; j++)
       {
@@ -559,25 +559,55 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       }
       return;
     }
+    
+    fill(dxnonull.begin(), dxnonull.end(), 0);
+    dxnonull_total=0;
+    for (unsigned j = 0; j < n_atoms; j++)
+    {
+     if (fabs(d_Psi_dx[j])<zero_tolerance and fabs(d_Psi_dy[j])<zero_tolerance and fabs(d_Psi_dz[j])<zero_tolerance)
+         continue;
+     dxnonull[j]=1;
+     dxnonull_total++;
+    }    
 
     // Build matrix A (see equations on Thesis2020 overleaf)
     //cout << " Step " << step << ": Building matrix A" << endl;
+    A.set_size(6, 3 * dxnonull_total);
+    A.fill(0.0);
+    unsigned k=0;
     for (unsigned j=0; j<n_atoms;j++)
     {
-     //cx coefficients
-     A(4,j+ 0*n_atoms) = atoms_z[j];
-     A(5,j+ 0*n_atoms) = -atoms_y[j];
-     //cy coefficients 
-     A(3,j+ 1*n_atoms) = -atoms_z[j];
-     A(5,j+ 1*n_atoms) = atoms_x[j];
-     //cz coefficients
-     A(3,j+ 2*n_atoms) = atoms_y[j];
-     A(4,j+ 2*n_atoms) = -atoms_x[j];
+     if (!dxnonull[j])
+           continue;
+
+        A(0,k+0*dxnonull_total) = 1.0;
+        A(1,k+0*dxnonull_total) = 0.0;
+        A(2,k+ 0*dxnonull_total) = 0.0;
+        A(3,k+ 0*dxnonull_total) = 0.0;
+        A(4,k+ 0*dxnonull_total) = atoms_z[j];
+        A(5,k+ 0*dxnonull_total) = -atoms_y[j];
+        
+        A(0,k+ 1*dxnonull_total) = 0.0;
+        A(1,k+ 1*dxnonull_total) = 1.0;
+        A(2,k+ 1*dxnonull_total) = 0.0;
+        A(3,k+ 1*dxnonull_total) = -atoms_z[j];
+        A(4,k+ 1*dxnonull_total) = 0.0;
+        A(5,k+ 1*dxnonull_total) = atoms_x[j];
+        
+        A(0,k+ 2*dxnonull_total) = 0.0;
+        A(1,k+ 2*dxnonull_total) = 0.0;
+        A(2,k+ 2*dxnonull_total) = 1.0;
+        A(3,k+ 2*dxnonull_total) = atoms_y[j];
+        A(4,k+ 2*dxnonull_total) = -atoms_x[j];
+        A(5,k+ 2*dxnonull_total) = 0.0;
+
+        k++;
     }
     // Transpose A
     At=arma::trans(A);
     // Build vector L
-    L.fill(0);
+
+    //L.fill(0); // we are not resetting L cause we want to correct residuals from past steps
     for (unsigned j=0; j<n_atoms; j++)
     {
       L[0]-=(force_x[j]+force_x_t[j]);
@@ -591,31 +621,45 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
     //cout << "Step " << step << ": L, before correction: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;
 
     //cout << " Step " << step << ": calculating C" << endl;
-    arma::vec c = At*arma::pinv(A*At)*L;
+    c = At*arma::pinv(A*At)*L;
 
     //cout << " Step " << step << ": Print corrections (before applying so we can see actual effect)" << endl;
     if (dumpderivatives and step%probestride==0)
     {
+     // Printing net forces and torques: we want all atoms so that we see that the accummulation doesn't get out of hand
      ofstream wfile;
      wfile.open("forces_torques.csv",std::ios_base::app);
+     k=0;
      for (unsigned j=0; j<n_atoms; j++)
      {
        wfile << step << " " << j << " " 
              << force_x[j]  << " " << force_y[j]  << " " << force_z[j] << " " 
              << torque_x[j] << " " << torque_y[j] << " " << torque_z[j] << " "
              << force_x_t[j] << " " << force_y_t[j] << " " << force_z_t[j] << " " 
-             << torque_x_t[j] << " " << torque_y_t[j] << " " << torque_z_t[j] << " "
-             << -kappa*(Psi-1)*c[j + 0 * n_atoms] << " " << -kappa*(Psi-1)*c[j + 1 * n_atoms] << " "<< -kappa*(Psi-1)*c[j + 2 * n_atoms] << " "
-             << endl;
+             << torque_x_t[j] << " " << torque_y_t[j] << " " << torque_z_t[j] << " ";
+       if (!dxnonull[j])
+       {
+        wfile << 0 << " " << 0 << " "<< 0 << " ";
+       }
+       else
+       {
+        wfile << -kappa*(Psi-1)*c[k + 0 * dxnonull_total] << " " << -kappa*(Psi-1)*c[k + 1 * dxnonull_total] << " "<< -kappa*(Psi-1)*c[k + 2 * dxnonull_total] << " ";
+        k++;
+       }
+        wfile << endl;     
      }
      wfile.close();
 
+     // Printing derivativesa and constants: we just want the atoms a correction is being applied to
      wfile.open("derivatives.csv",std::ios_base::app);
+     k=0;
      for (unsigned j=0; j<n_atoms; j++)
      {
+       if (!dxnonull[j])
+          continue;
        wfile << step << " " << j << " " 
              << d_Psi_dx[j] << " " << d_Psi_dy[j] << " " << d_Psi_dz[j] << " "
-             << c[j + 0 * n_atoms] << " " << c[j + 1 * n_atoms] << " "<< c[j + 2 * n_atoms] << " "
+             << c[k + 0 * dxnonull_total] << " " << c[k + 1 * dxnonull_total] << " "<< c[k + 2 * dxnonull_total] << " "
              << endl;
      }
      wfile.close();
@@ -623,12 +667,15 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
 
     
     //cout << " Step " << step << ": Applying correction" << endl;
+    k=0;
     for (unsigned j = 0; j < n_atoms; j++)
     {
-     //cout << c[j + 0 * n_atoms] << " "<< c[j + 1 * n_atoms] << " "<< c[j + 2 * n_atoms] << endl;
-     d_Psi_dx[j] += c[j + 0 * n_atoms];
-     d_Psi_dy[j] += c[j + 1 * n_atoms];
-     d_Psi_dz[j] += c[j + 2 * n_atoms];
+     if (!dxnonull[j])
+          continue;
+     d_Psi_dx[j] += c[k + 0 * dxnonull_total];
+     d_Psi_dy[j] += c[k + 1 * dxnonull_total];
+     d_Psi_dz[j] += c[k + 2 * dxnonull_total];
+     k++;
     }
 
     /* check results
@@ -637,28 +684,41 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
        of the accummulated ones in previous seps, so that:
        force_x_t+force_x=0 
     */
-    //cout << " Step " << step << ": Checking result " << endl;
+    //cout << " Step " << step << ": Calculating residuals (negative cause they will be added to next correction) " << endl;
+    // Here we iterate over all atoms because one that has dx=0 at a given step might still have accummulated
     L.fill(0);
     for (unsigned j=0; j<n_atoms; j++)
     {
      force_x_t[j]=-kappa*(Psi-1)*d_Psi_dx[j];
      force_y_t[j]=-kappa*(Psi-1)*d_Psi_dy[j];
      force_z_t[j]=-kappa*(Psi-1)*d_Psi_dz[j];
-     L[0]+=(force_x_t[j]+force_x[j]);
-     L[1]+=(force_y_t[j]+force_y[j]);
-     L[2]+=(force_z_t[j]+force_z[j]);
-     L[3]+=((atoms_y[j]*force_z_t[j]-atoms_z[j]*force_y_t[j])+torque_x[j]);
-     L[4]+=((atoms_z[j]*force_x_t[j]-atoms_x[j]*force_z_t[j])+torque_y[j]);
-     L[5]+=((atoms_x[j]*force_y_t[j]-atoms_y[j]*force_x_t[j])+torque_z[j]);
+     L[0]-=(force_x_t[j]+force_x[j]);
+     L[1]-=(force_y_t[j]+force_y[j]);
+     L[2]-=(force_z_t[j]+force_z[j]);
+     L[3]-=((atoms_y[j]*force_z_t[j]-atoms_z[j]*force_y_t[j])+torque_x[j]);
+     L[4]-=((atoms_z[j]*force_x_t[j]-atoms_x[j]*force_z_t[j])+torque_y[j]);
+     L[5]-=((atoms_x[j]*force_y_t[j]-atoms_y[j]*force_x_t[j])+torque_z[j]);
     }
-    if (fabs(L[0])>1e-8 or fabs(L[1])>1e-8 or fabs(L[2])>1e-8 or
-        fabs(L[3])>1e-8 or fabs(L[4])>1e-8 or fabs(L[5])>1e-8)
+    if (dumpderivatives and step%probestride==0)
     {
-      cout << "Step " << step << ": error: removal of net forces and torques failed. Simulation will now end." << endl;
+     ofstream wfile;
+     wfile.open("residuals.csv",std::ios_base::app);
+     wfile << step << " " 
+             << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] 
+             << endl;
+     wfile.close();
+    }
+    /*
+    if (fabs(L[0])>zero_tolerance or fabs(L[1])>zero_tolerance or fabs(L[2])>zero_tolerance or
+        fabs(L[3])>zero_tolerance or fabs(L[4])>zero_tolerance or fabs(L[5])>zero_tolerance)
+    {
+      cout << "Step " << step << ": Warning: removal of net forces and torques produce abnormally high residuals." << endl;
+      cout << "Residuals will be added to the total net force and torque for the next removal." << endl;
       cout << "Sum forces: "  << L[0] << " " << L[1] << " " << L[2] << endl;
       cout << "Sum torques: " << L[3] << " " << L[4] << " " << L[5] << endl;
-      exit(0);
+      //exit(0);
     }
+    */
      
     //cout << " Step " << step << ": Removed net forces and torques. New L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl << endl;
     fill(force_x.begin(), force_x.end(), 0.0);
@@ -667,7 +727,6 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
     fill(torque_x.begin(), torque_x.end(), 0.0);
     fill(torque_y.begin(), torque_y.end(), 0.0);
     fill(torque_z.begin(), torque_z.end(), 0.0);
-
     return;
     }
 
