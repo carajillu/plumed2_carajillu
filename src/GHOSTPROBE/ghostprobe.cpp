@@ -623,7 +623,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       //Btv=Bt*v;
       //x=arma::solve(BtB,Btv);
       //c=B*x;
-      c=(B*arma::inv_sympd(Bt*B)*Bt*v); //if matrix isn't invertible, pinv() will provide the best approximation
+      c=(B*arma::pinv(Bt*B)*Bt*v); 
       if (performance and step%probestride==0)  end_c = high_resolution_clock::now();
       
       //cout << "Assigning correction" << endl;
