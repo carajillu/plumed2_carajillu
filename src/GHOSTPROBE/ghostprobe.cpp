@@ -107,9 +107,7 @@ namespace PLMD
 
       // Set up of CV
       vector<PLMD::AtomNumber> atoms; // indices of atoms supplied to the CV (starts at 1)
-      vector<PLMD::AtomNumber> dxclude; // indices of atoms that will experience the GHOSTPROBE force
       unsigned n_atoms=0;               // number of atoms supplied to the CV
-      unsigned n_dxclude=0;               // number of atoms that will experience the GHOSTPROBE force
       vector<double> atoms_x;
       vector<double> atoms_y;
       vector<double> atoms_z;
@@ -126,39 +124,20 @@ namespace PLMD
       unsigned probestride=0; // stride to print information for post-processing the probe coordinates
 
       // Calculation of CV and its derivatives
-
       double Psi=0;
       vector<double> d_Psi_dx;
       vector<double> d_Psi_dy;
       vector<double> d_Psi_dz;
-      vector<unsigned> dxclude_idx; // 1 if derivative needs to be calculated, 0 otherwise
 
-      // Correction of derivatives
-      vector<double> tx;
-      vector<double> ty;
-      vector<double> tz;
-      vector<bool> dxnonull;
-      unsigned dxnonull_size;
-      double sum_d_dx;
-      double sum_d_dy;
-      double sum_d_dz;
-      double sum_t_dx;
-      double sum_t_dy;
-      double sum_t_dz;
-
-      //for when correction of derivatives fails
-      arma::mat A;
-      arma::mat B;
-      arma::mat Bt;
-      arma::mat BtB;
-      arma::vec v;
-      arma::vec Btv;
-      arma::vec x;
-      arma::vec c;
-
-      double err_tol=1e-8;
-      unsigned null_fails=0;
+      //Correction of derivatives: we need to solve c=At*inv(A*At)*L
+      arma::mat A;  // dim=6,3*n_atoms
+      arma::mat At; // dim=3*n_atoms,6
+      arma::vec L;  // dim=6
+      arma::vec c;  // 3*n_atoms
+      vector<unsigned> dxnonull;
+      unsigned dxnonull_total=0;
       bool dumpderivatives;
+      double zero_tolerance=1e-8;
 
     public:
       explicit Ghostprobe(const ActionOptions &);
@@ -265,7 +244,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       {
         ofstream wfile;
         wfile.open("derivatives.csv");
-        wfile << "Step Atom dx dy dz tx ty tz correction" << endl;
+        wfile << "Step Atom dx dy dz cx cy cz" << endl;
         wfile.close();
       }
 
@@ -279,22 +258,6 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
 
       parseAtomList("ATOMS", atoms);
       n_atoms = atoms.size();
-      
-      parseAtomList("DXCLUDE", dxclude);
-      n_dxclude = dxclude.size();
-      cout << "Excluding " << n_dxclude << " atoms from derivative calculations" << endl;
-      for (unsigned j=0;j<n_atoms;j++)
-      {
-        int dxclude_j=aidefunctions::findIndex(dxclude,atoms[j]);
-        if (dxclude_j==-1)
-        {
-          dxclude_idx.push_back(0);
-        }
-        else
-        {
-          dxclude_idx.push_back(1);
-        }
-      }
 
       parse("NPROBES", nprobes);
       if (!nprobes)
@@ -508,19 +471,11 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       if (!nodxfix)
       {
         cout << "---------Initialisng correction of Ghostprobe derivatives---------" << endl;
-        tx=vector<double>(n_atoms,0);
-        ty=vector<double>(n_atoms,0);
-        tz=vector<double>(n_atoms,0);
-        dxnonull=vector<bool>(n_atoms,false);
-        dxnonull_size=0;
-        A=arma::mat(6,n_atoms);
-        B=arma::mat(n_atoms,n_atoms);
-        Bt=arma::mat(n_atoms,n_atoms);
-        BtB=arma::mat(n_atoms,n_atoms);
-        Btv=arma::vec(n_atoms);
-        x=arma::vec(n_atoms);
-        v=arma::vec(n_atoms);
-        c=arma::vec(n_atoms);
+        A=arma::mat(6,3*n_atoms,arma::fill::zeros);
+        At=arma::mat(3*n_atoms,6,arma::fill::zeros);
+        L=arma::vec(6,arma::fill::zeros); 
+        c=arma::vec(3*n_atoms,arma::fill::zeros);
+        dxnonull=vector<unsigned>(n_atoms,0);
       }
       else
       {
@@ -539,161 +494,139 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       fill(d_Psi_dx.begin(), d_Psi_dx.end(), 0);
       fill(d_Psi_dy.begin(), d_Psi_dy.end(), 0);
       fill(d_Psi_dz.begin(), d_Psi_dz.end(), 0);
-      fill(dxnonull.begin(), dxnonull.end(), false);
-      dxnonull_size=0;
-      fill(tx.begin(),tx.end(),0);
-      fill(ty.begin(),ty.end(),0);
-      fill(tz.begin(),tz.end(),0);
-      sum_d_dx = 0;
-      sum_d_dy = 0;
-      sum_d_dz = 0;
-      sum_t_dx = 0;
-      sum_t_dy = 0;
-      sum_t_dz = 0;
     }
 
     void Ghostprobe::correct_derivatives()
     {
-      if (performance and step%probestride==0)  start_dxfix = high_resolution_clock::now();
-      //cout << "Step 0: calculating torques" << endl;
-      if (performance and step%probestride==0)  start_tor = high_resolution_clock::now();
-      for (unsigned j=0; j<n_atoms;j++)
-      {
-        if (d_Psi_dx[j]==0 and d_Psi_dy[j]==0 and d_Psi_dz[j]==0)
+    // Check which derivatives are not 0 and build vector L
+    L.fill(0); 
+    fill(dxnonull.begin(), dxnonull.end(), 0);
+    dxnonull_total=0;
+    for (unsigned j = 0; j < n_atoms; j++)
+    {
+     if (d_Psi_dx[j]==0. and d_Psi_dy[j]==0. and d_Psi_dz[j]==0.) //this will only skip the ones that are specifically set to 0
+         continue;
+     L[0]-=d_Psi_dx[j];
+     L[1]-=d_Psi_dy[j];
+     L[2]-=d_Psi_dz[j];
+     L[3]-=atoms_y[j]*d_Psi_dz[j]-atoms_z[j]*d_Psi_dy[j];
+     L[4]-=atoms_z[j]*d_Psi_dx[j]-atoms_x[j]*d_Psi_dz[j];
+     L[5]-=atoms_x[j]*d_Psi_dy[j]-atoms_y[j]*d_Psi_dx[j];
+     dxnonull[j]=1;
+     dxnonull_total++;
+    }
+    //cout << "Step " << step << ": L, before correction: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl;    
+
+    //calculate the CV derivative component of the torques
+
+    // Build matrix A (see equations on Thesis2020 overleaf)
+    //cout << " Step " << step << ": Building matrix A" << endl;
+    A.set_size(6, 3 * dxnonull_total);
+    A.fill(0.0);
+    unsigned k=0;
+    for (unsigned j=0; j<n_atoms;j++)
+    {
+     if (!dxnonull[j])
            continue;
-        //cout << j << " " << d_Psi_dx[j] << " " << d_Psi_dy[j] << " " << d_Psi_dz[j] << endl;
-        tx[j]=atoms_y[j]*d_Psi_dz[j]-atoms_z[j]*d_Psi_dy[j];
-        ty[j]=atoms_z[j]*d_Psi_dx[j]-atoms_x[j]*d_Psi_dz[j];
-        tz[j]=atoms_x[j]*d_Psi_dy[j]-atoms_y[j]*d_Psi_dx[j];
-        dxnonull[j]=true;
-        dxnonull_size++;
-      }
-       //if all derivatives are equal to 0 skip this step
-      if (dxnonull_size==0)
-      {
-        //cout << "All derivatives are zero. Skipping correction of derivatives." << endl;
-        return;
-      }
-      if (performance and step%probestride==0)  end_tor = high_resolution_clock::now();
 
-      //cout << "Generating matrices" << endl;
-      if (performance and step%probestride==0)  start_A = high_resolution_clock::now();
-      v=arma::vec(dxnonull_size);
-      fill(v.begin(),v.end(),1);
+        A(0,k+0*dxnonull_total) = 1.0;
+        A(1,k+0*dxnonull_total) = 0.0;
+        A(2,k+ 0*dxnonull_total) = 0.0;
+        A(3,k+ 0*dxnonull_total) = 0.0;
+        A(4,k+ 0*dxnonull_total) = atoms_z[j];
+        A(5,k+ 0*dxnonull_total) = -atoms_y[j];
+        
+        A(0,k+ 1*dxnonull_total) = 0.0;
+        A(1,k+ 1*dxnonull_total) = 1.0;
+        A(2,k+ 1*dxnonull_total) = 0.0;
+        A(3,k+ 1*dxnonull_total) = -atoms_z[j];
+        A(4,k+ 1*dxnonull_total) = 0.0;
+        A(5,k+ 1*dxnonull_total) = atoms_x[j];
+        
+        A(0,k+ 2*dxnonull_total) = 0.0;
+        A(1,k+ 2*dxnonull_total) = 0.0;
+        A(2,k+ 2*dxnonull_total) = 1.0;
+        A(3,k+ 2*dxnonull_total) = atoms_y[j];
+        A(4,k+ 2*dxnonull_total) = -atoms_x[j];
+        A(5,k+ 2*dxnonull_total) = 0.0;
 
-      A=arma::mat(6,dxnonull_size);
-      unsigned k=0;
-      for (unsigned j=0; j<n_atoms; j++)
-      {
-        if (!dxnonull[j])
-            continue;
-        A.row(0).col(k)=d_Psi_dx[j];
-        A.row(1).col(k)=d_Psi_dy[j];
-        A.row(2).col(k)=d_Psi_dz[j];
-        A.row(3).col(k)=tx[j];
-        A.row(4).col(k)=ty[j];
-        A.row(5).col(k)=tz[j];
         k++;
-      }
-      if (performance and step%probestride==0)  end_A = high_resolution_clock::now();
-      
-      //cout << "Matrix ops" << endl;
-      //Apply https://math.stackexchange.com/questions/4686718/how-to-solve-a-linear-system-with-more-variables-than-equations-with-constraints/4686826#4686826
-      if (performance and step%probestride==0)  start_B = high_resolution_clock::now();
-      bool null_pass=arma::null(B,A);
-      if (!null_pass)
-      {
-        cout << "Null space of A could not be calculated at step" << step << " (likely a fail of arma::svd())" << endl;
-        null_fails++;
-        return;
-      }
-      if (null_fails>=10000)
-      {
-        cout << "To many fails of arma::null. Aborting calculation." << endl;
-      }
+    }
+    // Transpose A
+    At=arma::trans(A);
 
-      if (performance and step%probestride==0)  end_B = high_resolution_clock::now();
+    //cout << " Step " << step << ": calculating C" << endl;
+    c = At*arma::pinv(A*At)*L;
 
-      if (performance and step%probestride==0)  start_Bt = high_resolution_clock::now();
-      Bt=B.t();
-      if (performance and step%probestride==0)  end_Bt = high_resolution_clock::now();
+    //cout << " Step " << step << ": Print corrections (before applying so we can see actual effect)" << endl;
+    if (dumpderivatives and step%probestride==0)
+    {
+     // Printing derivativesa and constants: we just want the atoms a correction is being applied to
+     ofstream wfile;
+     wfile.open("derivatives.csv",std::ios_base::app);
+     k=0;
+     for (unsigned j=0; j<n_atoms; j++)
+     {
+       if (!dxnonull[j])
+          continue;
+       wfile << step << " " << j << " " 
+             << d_Psi_dx[j] << " " << d_Psi_dy[j] << " " << d_Psi_dz[j] << " "
+             << c[k + 0 * dxnonull_total] << " " << c[k + 1 * dxnonull_total] << " "<< c[k + 2 * dxnonull_total] << " "
+             << endl;
+       k++;
+     }
+     wfile.close();
+    }
 
-      if (performance and step%probestride==0)  start_c = high_resolution_clock::now();
-      //BtB=Bt*B;
-      //Btv=Bt*v;
-      //x=arma::solve(BtB,Btv);
-      //c=B*x;
-      c=(B*arma::pinv(Bt*B)*Bt*v); 
-      if (performance and step%probestride==0)  end_c = high_resolution_clock::now();
-      
-      //cout << "Assigning correction" << endl;
-      if (performance and step%probestride==0)  start_correction = high_resolution_clock::now();
-      k=0;
-      for (unsigned j=0; j<n_atoms; j++)
-      {
-        if (!dxnonull[j])
-           continue;
-        if (dumpderivatives and step%probestride==0)
-        {
-          ofstream wfile;
-          wfile.open("derivatives.csv",std::ios_base::app);
-          wfile << setprecision(16);
-          wfile << step << " " << j << " " 
-                << d_Psi_dx[j] << " " << d_Psi_dy[j] << " " << d_Psi_dz[j] << " "
-                << as_scalar(A.row(3).col(k)) << " " << as_scalar(A.row(4).col(k)) << " " << as_scalar(A.row(5).col(k)) << " " 
-                << c[k] << endl;      
-          wfile.close();          
-        }
-        d_Psi_dx[j]*=c[k];
-        d_Psi_dy[j]*=c[k];
-        d_Psi_dz[j]*=c[k];
-        tx[j]*=c[k];
-        ty[j]*=c[k];
-        tz[j]*=c[k];
-        k++;
-      }
-       if (performance and step%probestride==0)  end_correction = high_resolution_clock::now();
+    
+    //cout << " Step " << step << ": Applying correction" << endl;
+    k=0;
+    for (unsigned j = 0; j < n_atoms; j++)
+    {
+     if (!dxnonull[j])
+          continue;
+     d_Psi_dx[j] += c[k + 0 * dxnonull_total];
+     d_Psi_dy[j] += c[k + 1 * dxnonull_total];
+     d_Psi_dz[j] += c[k + 2 * dxnonull_total];
+     k++;
+    }
 
-      //cout << "checking that correction worked" << endl;
-      if (performance and step%probestride==0)  start_test = high_resolution_clock::now();
-      for (unsigned j=0; j<n_atoms; j++)
-      {
-        sum_d_dx+=d_Psi_dx[j];
-        sum_d_dy+=d_Psi_dy[j];
-        sum_d_dz+=d_Psi_dz[j];
-        sum_t_dx+=tx[j];
-        sum_t_dy+=ty[j];
-        sum_t_dz+=tz[j];
-      }
+    //cout << " Step " << step << ": Calculating residuals (negative cause they will be added to next correction) " << endl;
+    L.fill(0);
+    for (unsigned j=0; j<n_atoms; j++)
+    {
+     if (!dxnonull[j])
+        continue;
+     L[0]-=d_Psi_dx[j];
+     L[1]-=d_Psi_dy[j];
+     L[2]-=d_Psi_dz[j];
+     L[3]-=atoms_y[j]*d_Psi_dz[j]-atoms_z[j]*d_Psi_dy[j];
+     L[4]-=atoms_z[j]*d_Psi_dx[j]-atoms_x[j]*d_Psi_dz[j];
+     L[5]-=atoms_x[j]*d_Psi_dy[j]-atoms_y[j]*d_Psi_dx[j];
+    }
 
-      if ((sum_d_dx>err_tol) or (sum_d_dy>err_tol) or (sum_d_dz>err_tol) or 
-          (sum_t_dx>err_tol) or (sum_t_dy>err_tol) or (sum_t_dz>err_tol))
-      {
-      cout << "Error: Correction of derivatives malfunctioned. Simulation will now end." << endl;
-      cout << "Sum derivatives: " << sum_d_dx << " " << sum_d_dy << " " << sum_d_dz << endl;
-      cout << "Sum torques: " << sum_t_dx << " " << sum_t_dy << " " << sum_t_dz << endl;
-      exit(0);
-      }
-      if (performance and step%probestride==0)  end_test = high_resolution_clock::now();
+    if (dumpderivatives and step%probestride==0)
+    {
+     ofstream wfile;
+     wfile.open("residuals.csv",std::ios_base::app);
+     wfile << step << " " 
+             << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] 
+             << endl;
+     wfile.close();
+    }
+    
+    if (fabs(L[0])>zero_tolerance or fabs(L[1])>zero_tolerance or fabs(L[2])>zero_tolerance or
+        fabs(L[3])>zero_tolerance or fabs(L[4])>zero_tolerance or fabs(L[5])>zero_tolerance)
+    {
+      cout << "Step " << step << ": Warning: removal of net forces and torques produce abnormally high residuals." << endl;
+      cout << "Residuals will be added to the total net force and torque for the next removal." << endl;
+      cout << "Sum forces: "  << L[0] << " " << L[1] << " " << L[2] << endl;
+      cout << "Sum torques: " << L[3] << " " << L[4] << " " << L[5] << endl;
+      //exit(0);
+    }
 
-      if (performance and step%probestride==0)  end_dxfix = high_resolution_clock::now();
-      if (performance and step%probestride==0)
-      {
-        int tor_time = duration_cast<microseconds>(end_tor - start_tor).count();
-        int A_time = duration_cast<microseconds>(end_A - start_A).count();
-        int B_time = duration_cast<microseconds>(end_B - start_B).count();
-        string Bcoot_time="NA";
-        int Bt_time = duration_cast<microseconds>(end_Bt - start_Bt).count();
-        int c_time = duration_cast<microseconds>(end_c - start_c).count();
-        int correction_time = duration_cast<microseconds>(end_correction - start_correction).count();
-        int test_time = duration_cast<microseconds>(end_test - start_test).count();
-        int total = duration_cast<microseconds>(end_dxfix - start_dxfix).count();
-        ofstream wfile;
-        wfile.open("performance_dxfix.txt",std::ios_base::app);
-        wfile << tor_time << " " << A_time << " " << B_time << " " << Bcoot_time  << " "<< Bt_time << " " << c_time << " " << correction_time << " " << test_time << " " << total << endl;
-        wfile.close();
-      }
-      //cout << "exiting derivatives correction" << endl;
+    //cout << " Step " << step << ": Removed net forces and torques. New L: " << L[0] << " " << L[1] << " " << L[2] << " " << L[3] << " " << L[4] << " " << L[5] << endl << endl;
+    return;
     }
 
     void Ghostprobe::print_protein()
@@ -852,16 +785,6 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       
       if (performance and step%probestride==0)  end_psi = high_resolution_clock::now();
       
-      // Set excluded derivatives to 0 (although we still need them to move the probe (?))
-      for (unsigned j=0;j<n_atoms;j++)
-      {
-        if (dxclude_idx[j]==1)
-        {
-          d_Psi_dx[j]=0;
-          d_Psi_dy[j]=0;
-          d_Psi_dz[j]=0;
-        }
-      }
       //Correct the Psi derivatives so that they sum 0
       if (!nodxfix)
       {
