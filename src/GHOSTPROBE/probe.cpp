@@ -177,21 +177,26 @@ void Probe::perturb_probe(unsigned step)
    //cout << " Step "<< step << ": activity = " << activity << ". Doing nothing" << endl;
    pertype="none";
   }
-  else if (activity>0 and activity<1)
-  {
-    //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function dx_pert()" << endl;
-    pertype="dx";
-    dx_pert();
-  }
   else if (P==0) //probe is way too far, move it towards the centre of the protein
   { 
    pertype="centroid";
    bring_to_centroid();
    //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function bring_to_centroid()" << endl;
   }
-  else //C==0
+  else if (C==0) //probe is completely occluded, move at random
   {
     //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function rand_pert()" << endl;
+    pertype="random";
+    rand_pert();
+  }
+  else if (d_activity_dprobe[0]>0) // If neither C nor P are 0 AND the probe derivatives are not zero either (which can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
+  {
+    //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function dx_pert()" << endl;
+    pertype="dx";
+    dx_pert();
+  }
+  else //
+  {
     pertype="random";
     rand_pert();
   }
