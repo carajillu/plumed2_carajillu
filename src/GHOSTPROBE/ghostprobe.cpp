@@ -706,7 +706,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
           y=getPosition(init_j[i])[1];
           z=getPosition(init_j[i])[2];
           probes[i].place_probe(x,y,z);
-          probes[i].perturb_probe(0);
+          probes[i].perturb_probe(0,atoms_x,atoms_y,atoms_z);
           cout << "Probe " << i << " centered on atom " << atoms[init_j[i]].serial() << endl;
         }
       }
@@ -762,7 +762,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
         because print_probe_movement() records the type of perturbation.
         */
         if (step%probestride==0) probes[i].print_probe_xyz(step);
-        if (kpert>0) probes[i].perturb_probe(step);
+        if (kpert>0) probes[i].perturb_probe(step,atoms_x,atoms_y,atoms_z);
         if (step%probestride==0) probes[i].print_probe_movement(step,atoms,n_atoms);
       }
       /////////////////////////////////////////////////

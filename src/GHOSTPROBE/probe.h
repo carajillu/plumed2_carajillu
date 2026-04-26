@@ -110,7 +110,7 @@ class Probe
   void rand_pert();
   void dx_pert();
   void bring_to_centroid();
-  void xplor_pert();
+  void xplor_pert(vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z);
 
  public:
     Probe(unsigned Probe_id, bool restart_probes,
@@ -124,7 +124,7 @@ class Probe
     
     void place_probe(double x, double y, double z);
     void get_atoms_restart(vector<vector<double>> restart_xyz);
-    void perturb_probe(unsigned step);
+    void perturb_probe(unsigned step, vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z);
 
     
     void move_probe(unsigned step, vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z);

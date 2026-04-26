@@ -145,20 +145,16 @@ void Probe::bring_to_centroid()
   xyz[2]+=Kxplor/norm*(centroid[2]-xyz[2]);
 }
 
-void Probe::xplor_pert()
+void Probe::xplor_pert(vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z)
 {
-  double rand_x=COREFUNCTIONS::random_double(-1,1);
-  double rand_y=COREFUNCTIONS::random_double(-1,1);
-  double rand_z=COREFUNCTIONS::random_double(-1,1);
-  double norm=sqrt(pow(rand_x,2)+pow(rand_y,2)+pow(rand_z,2));
-  xyz[0]+=Kxplor*(rand_x/norm);
-  xyz[1]+=Kxplor*(rand_y/norm);
-  xyz[2]+=Kxplor*(rand_z/norm);
+  size_t xplor_j=aidefunctions::sample_random_index(n_atoms);
+  place_probe(atoms_x[xplor_j],atoms_y[xplor_j],atoms_z[xplor_j]);
+  rand_pert();
   return;
 }
 
 
-void Probe::perturb_probe(unsigned step)
+void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z)
 {
   if (pertstride==0) // exit function if we are not doing pocket search
   {
@@ -166,11 +162,16 @@ void Probe::perturb_probe(unsigned step)
     return;
   }
 
-  if (step%pertstride==0)
+  if (step==0)
+  {
+   pertype="random";
+   rand_pert();
+  }
+  else if (step%pertstride==0)
   {
    //cout << " Step "<< step << ": calling function rand_pert()" << endl;
    pertype="xplor";
-   xplor_pert();
+   xplor_pert(atoms_x,atoms_y,atoms_z);
   }
   else if (activity==1)
   {
@@ -189,7 +190,7 @@ void Probe::perturb_probe(unsigned step)
     pertype="random";
     rand_pert();
   }
-  else if (d_activity_dprobe[0]>0) // If neither C nor P are 0 AND the probe derivatives are not zero either (which can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
+  else if (abs(d_activity_dprobe[0]>0) or abs(d_activity_dprobe[1]>0) or abs(d_activity_dprobe[2]>0)) // If neither C nor P are 0 AND at least on of the probe derivatives is not zero either (probe dxyz=0 can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
   {
     //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function dx_pert()" << endl;
     pertype="dx";
