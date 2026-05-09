@@ -164,7 +164,7 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
 
   if (step==0)
   {
-   pertype="random";
+   pertype="init_random";
    rand_pert();
   }
   else if (step%pertstride==0)
@@ -187,10 +187,10 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
   else if (C==0) //probe is completely occluded, move at random
   {
     //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function rand_pert()" << endl;
-    pertype="random";
+    pertype="c_random";
     rand_pert();
   }
-  else if (abs(d_activity_dprobe[0]>0) or abs(d_activity_dprobe[1]>0) or abs(d_activity_dprobe[2]>0)) // If neither C nor P are 0 AND at least on of the probe derivatives is not zero either (probe dxyz=0 can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
+  else if (abs(d_activity_dprobe[0])>0 or abs(d_activity_dprobe[1])>0 or abs(d_activity_dprobe[2])>0) // If neither C nor P are 0 AND at least on of the probe derivatives is not zero either (probe dxyz=0 can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
   {
     //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function dx_pert()" << endl;
     pertype="dx";
@@ -198,7 +198,7 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
   }
   else //
   {
-    pertype="random";
+    pertype="else_random";
     rand_pert();
   }
   //cout << pertype << endl;
@@ -529,7 +529,7 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
   if (step==0)
   {
    wfile.open(filename.c_str());
-   wfile << "ID Step pertype min_r_serial min_r enclosure P clash C hydrophobicity H activity" << endl;
+   wfile << "ID Step dx dy dz pertype min_r_serial min_r enclosure P clash C hydrophobicity H activity" << endl;
   }
   else
    wfile.open(filename.c_str(),std::ios_base::app);
@@ -542,7 +542,9 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
   */
   if (pertype.empty())
    pertype="none";
-  wfile << probe_id << " " << step << " " << pertype << " " << atoms[j_min_r].serial() << " " << min_r << " " 
+  wfile << probe_id << " " << step << " " 
+        << d_activity_dprobe[0] << " " << d_activity_dprobe[1] << " "  << d_activity_dprobe[2] << " "
+        << pertype << " " << atoms[j_min_r].serial() << " " << min_r << " " 
         << total_enclosure << " " << P << " " 
         << total_clash << " " << C << " "
         << hydrophobicity << " " << H << " "
