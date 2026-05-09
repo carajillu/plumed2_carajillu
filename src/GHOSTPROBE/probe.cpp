@@ -345,6 +345,15 @@ void Probe::calculate_hydrophobicity()
    }
   }
   */
+  hydrophobicity=0;
+  // Safeguard for total_enclosure==0
+  if (total_enclosure==0)
+  {
+    fill(d_hydrophobicity_dx.begin(),d_activity_dx.end(),0);
+    fill(d_hydrophobicity_dy.begin(),d_activity_dy.end(),0);
+    fill(d_hydrophobicity_dz.begin(),d_activity_dz.end(),0);
+    return;
+  }
   
   hydrophobicity_numerator=0;
   hydrophobicity=0;
