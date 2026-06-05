@@ -136,15 +136,6 @@ void Probe::dx_pert()
   xyz[2]-=k*Kpert*(d_activity_dprobe[2]/norm);
 }
 
-void Probe::bring_to_centroid()
-{
- //cout << "enclosure = " << enclosure << ". Moving probe towards the protein centroid." << endl;
-  double norm=sqrt(pow((centroid[0]-xyz[0]),2)+pow((centroid[1]-xyz[1]),2)+pow((centroid[2]-xyz[2]),2));
-  xyz[0]+=Kxplor/norm*(centroid[0]-xyz[0]);
-  xyz[1]+=Kxplor/norm*(centroid[1]-xyz[1]);
-  xyz[2]+=Kxplor/norm*(centroid[2]-xyz[2]);
-}
-
 void Probe::xplor_pert()
 {
   double rand_x=COREFUNCTIONS::random_double(-1,1);
@@ -157,8 +148,25 @@ void Probe::xplor_pert()
   return;
 }
 
+void Probe::bring_to_centroid()
+{
+ //cout << "enclosure = " << enclosure << ". Moving probe towards the protein centroid." << endl;
+  double norm=sqrt(pow((centroid[0]-xyz[0]),2)+pow((centroid[1]-xyz[1]),2)+pow((centroid[2]-xyz[2]),2));
+  xyz[0]+=Kxplor/norm*(centroid[0]-xyz[0]);
+  xyz[1]+=Kxplor/norm*(centroid[1]-xyz[1]);
+  xyz[2]+=Kxplor/norm*(centroid[2]-xyz[2]);
+}
 
-void Probe::perturb_probe(unsigned step)
+void Probe::reset_probe(vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z)
+{
+  size_t xplor_j=aidefunctions::sample_random_index(n_atoms);
+  place_probe(atoms_x[xplor_j],atoms_y[xplor_j],atoms_z[xplor_j]);
+  rand_pert();
+  return;
+}
+
+
+void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z)
 {
   if (pertstride==0) // exit function if we are not doing pocket search
   {
@@ -166,10 +174,15 @@ void Probe::perturb_probe(unsigned step)
     return;
   }
 
-  if (step%pertstride==0)
+  if (step==0)
+  {
+   pertype="init_random";
+   rand_pert();
+  }
+  else if (step%pertstride==0)
   {
    //cout << " Step "<< step << ": calling function rand_pert()" << endl;
-   pertype="xplor";
+   pertype="xplor_random";
    xplor_pert();
   }
   else if (activity==1)
@@ -186,10 +199,10 @@ void Probe::perturb_probe(unsigned step)
   else if (C==0) //probe is completely occluded, move at random
   {
     //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function rand_pert()" << endl;
-    pertype="random";
+    pertype="c_random";
     rand_pert();
   }
-  else if (d_activity_dprobe[0]>0) // If neither C nor P are 0 AND the probe derivatives are not zero either (which can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
+  else if (abs(d_activity_dprobe[0])>0 or abs(d_activity_dprobe[1])>0 or abs(d_activity_dprobe[2])>0) // If neither C nor P are 0 AND at least on of the probe derivatives is not zero either (probe dxyz=0 can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
   {
     //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function dx_pert()" << endl;
     pertype="dx";
@@ -197,7 +210,7 @@ void Probe::perturb_probe(unsigned step)
   }
   else //
   {
-    pertype="random";
+    pertype="else_random";
     rand_pert();
   }
   //cout << pertype << endl;
@@ -344,6 +357,15 @@ void Probe::calculate_hydrophobicity()
    }
   }
   */
+  hydrophobicity=0;
+  // Safeguard for total_enclosure==0
+  if (total_enclosure==0)
+  {
+    fill(d_hydrophobicity_dx.begin(),d_activity_dx.end(),0);
+    fill(d_hydrophobicity_dy.begin(),d_activity_dy.end(),0);
+    fill(d_hydrophobicity_dz.begin(),d_activity_dz.end(),0);
+    return;
+  }
   
   hydrophobicity_numerator=0;
   hydrophobicity=0;
@@ -528,7 +550,7 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
   if (step==0)
   {
    wfile.open(filename.c_str());
-   wfile << "ID Step pertype min_r_serial min_r enclosure P clash C hydrophobicity H activity" << endl;
+   wfile << "ID Step dx dy dz pertype min_r_serial min_r enclosure P clash C hydrophobicity H activity" << endl;
   }
   else
    wfile.open(filename.c_str(),std::ios_base::app);
@@ -541,7 +563,9 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
   */
   if (pertype.empty())
    pertype="none";
-  wfile << probe_id << " " << step << " " << pertype << " " << atoms[j_min_r].serial() << " " << min_r << " " 
+  wfile << probe_id << " " << step << " " 
+        << d_activity_dprobe[0] << " " << d_activity_dprobe[1] << " "  << d_activity_dprobe[2] << " "
+        << pertype << " " << atoms[j_min_r].serial() << " " << min_r << " " 
         << total_enclosure << " " << P << " " 
         << total_clash << " " << C << " "
         << hydrophobicity << " " << H << " "

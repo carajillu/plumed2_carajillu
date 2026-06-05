@@ -9,4 +9,6 @@ public:
   static int findIndex(const vector<PLMD::AtomNumber> arr, PLMD::AtomNumber item);
   static unsigned get_random_integer(unsigned start, unsigned end);
   static vector<vector<double>> read_xyz(string filename, int frame_id);
+  static size_t sample_inverse_weighted_index(const vector<double>& r);
+  static size_t sample_random_index(const size_t n_atoms);
 };

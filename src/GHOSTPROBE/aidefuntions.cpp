@@ -64,3 +64,46 @@ vector<vector<double>> aidefunctions::read_xyz(string filename, int frame_id)
     fp.close();
     return xyz;
 }
+
+size_t aidefunctions::sample_inverse_weighted_index(const vector<double>& r)
+{
+    const size_t n = r.size();
+    if (n == 0) {
+        throw invalid_argument("Input vector r must not be empty.");
+    }
+
+    vector<double> weights(n, 0.0);
+    size_t positive_count = 0;
+
+    // Parallel: compute weights, discard r[j] == 0
+    #pragma omp parallel for reduction(+:positive_count) default(none) shared(r, weights, n)
+    for (size_t j = 0; j < n; j++) {
+        const double x = r[j];
+        if (x > 0.0) {
+            weights[j] = 1.0 / x;
+            positive_count += 1;
+        } else {
+            weights[j] = 0.0; // explicitly excluded
+        }
+    }
+
+    if (positive_count == 0) {
+        throw runtime_error("No positive elements in r; cannot select an index.");
+    }
+
+    // Serial: random sampling
+    static thread_local mt19937 gen{random_device{}()};
+    discrete_distribution<size_t> dist(weights.begin(), weights.end());
+
+    return dist(gen);
+}
+
+size_t aidefunctions::sample_random_index(const size_t n_atoms)
+{
+    vector<double> weights(n_atoms,1.0);
+    // Serial: random sampling
+    static thread_local mt19937 gen{random_device{}()};
+    discrete_distribution<size_t> dist(weights.begin(), weights.end());
+
+    return dist(gen);
+}
