@@ -109,8 +109,9 @@ class Probe
   //for probe perturbation
   void rand_pert();
   void dx_pert();
+  void xplor_pert();
   void bring_to_centroid();
-  void xplor_pert(vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z);
+  void reset_probe(vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z);
 
  public:
     Probe(unsigned Probe_id, bool restart_probes,

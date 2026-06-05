@@ -136,6 +136,18 @@ void Probe::dx_pert()
   xyz[2]-=k*Kpert*(d_activity_dprobe[2]/norm);
 }
 
+void Probe::xplor_pert()
+{
+  double rand_x=COREFUNCTIONS::random_double(-1,1);
+  double rand_y=COREFUNCTIONS::random_double(-1,1);
+  double rand_z=COREFUNCTIONS::random_double(-1,1);
+  double norm=sqrt(pow(rand_x,2)+pow(rand_y,2)+pow(rand_z,2));
+  xyz[0]+=Kxplor*(rand_x/norm);
+  xyz[1]+=Kxplor*(rand_y/norm);
+  xyz[2]+=Kxplor*(rand_z/norm);
+  return;
+}
+
 void Probe::bring_to_centroid()
 {
  //cout << "enclosure = " << enclosure << ". Moving probe towards the protein centroid." << endl;
@@ -145,7 +157,7 @@ void Probe::bring_to_centroid()
   xyz[2]+=Kxplor/norm*(centroid[2]-xyz[2]);
 }
 
-void Probe::xplor_pert(vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z)
+void Probe::reset_probe(vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z)
 {
   size_t xplor_j=aidefunctions::sample_random_index(n_atoms);
   place_probe(atoms_x[xplor_j],atoms_y[xplor_j],atoms_z[xplor_j]);
@@ -170,8 +182,8 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
   else if (step%pertstride==0)
   {
    //cout << " Step "<< step << ": calling function rand_pert()" << endl;
-   pertype="xplor";
-   xplor_pert(atoms_x,atoms_y,atoms_z);
+   pertype="xplor_random";
+   xplor_pert();
   }
   else if (activity==1)
   {
