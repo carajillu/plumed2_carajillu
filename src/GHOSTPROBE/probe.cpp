@@ -319,6 +319,11 @@ void Probe::calculate_mind()
  #pragma omp parallel for reduction(+:sum_exp)
  for (unsigned j=0; j<n_atoms; j++)
  {
+  if (r[j] > Rmax+deltaRmax)
+  {
+    exp_rj[j]=0;
+    continue;
+  }
   exp_rj[j]=exp(theta/r[j]-max_val);
   sum_exp+=exp_rj[j];
  }
@@ -330,6 +335,13 @@ void Probe::calculate_mind()
  #pragma omp parallel for
  for (unsigned j=0; j<n_atoms; j++)
  {
+  if (r[j] > Rmax+deltaRmax)
+  {
+    d_mind_dx[j]=0;
+    d_mind_dy[j]=0;
+    d_mind_dz[j]=0;
+    continue;
+  }
   d_mind_dx[j]=d_mind*exp_rj[j]*(-theta/(r[j]*r[j]))*dr_dx[j];
   d_mind_dy[j]=d_mind*exp_rj[j]*(-theta/(r[j]*r[j]))*dr_dy[j];
   d_mind_dz[j]=d_mind*exp_rj[j]*(-theta/(r[j]*r[j]))*dr_dz[j];
