@@ -18,8 +18,7 @@ using namespace COREFUNCTIONS;
 
 Probe::Probe(unsigned Probe_id, bool Restart_probes,
             double RMin, double DeltaRmin, 
-            double RMax, double DeltaRmax, 
-            double phimin, double deltaphi, 
+            double RMax, double DeltaRmax,
             double psimin, double deltapsi,
             double hmin, double deltah, vector<double> h_coeff,
             double kpert, double kxplor, unsigned Pertstride,
@@ -33,8 +32,6 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
   deltaRmin=DeltaRmin; // interval over which contact terms are turned on and off
   Rmax=RMax; // distance above which an atom is considered to be too far away from the probe*
   deltaRmax=DeltaRmax; // interval over which contact terms are turned on and off
-  Cmin=phimin; 
-  deltaC=deltaphi;
   Pmin=psimin; 
   deltaP=deltapsi;
   Hmin=hmin;

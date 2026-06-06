@@ -15,8 +15,6 @@ class Probe
   double deltaRmin; // interval over which contact terms are turned on and off
   double Rmax; // distance above which an atom is considered to be too far away from the probe*
   double deltaRmax; // interval over which contact terms are turned on and off
-  double Cmin; // packing factor below which depth term equals 0
-  double deltaC; // interval over which depth term turns from 0 to 1
   double Pmin; // packing factor below which depth term equals 0
   double deltaP; // interval over which depth term turns from 0 to 1
   vector<double> H_coeff; // hydrophobicity coefficients for each atom in the PDB file
@@ -117,8 +115,7 @@ class Probe
  public:
     Probe(unsigned Probe_id, bool restart_probes,
           double RMin, double DeltaRmin, 
-          double RMax, double DeltaRmax, 
-          double phimin, double deltaphi, 
+          double RMax, double DeltaRmax,
           double psimin, double deltapsi,
           double hmin, double deltah, vector<double> h_coeff,
           double kpert, double kxplor, unsigned Pertstride,

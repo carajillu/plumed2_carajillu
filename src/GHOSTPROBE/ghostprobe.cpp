@@ -98,8 +98,6 @@ namespace PLMD
       double deltaRmax=0;        // interval over which contact terms are turned on and off
       double Pmin=0;           // packing factor below which depth term equals 0
       double deltaP=0;         // interval over which depth term turns from 0 to 1
-      double Cmin=0;           // packing factor below which depth term equals 0
-      double deltaC=0;         // interval over which depth term turns from 0 to 1
       double Hmin=0;           // hydrophobicity factor below which depth term equals 0
       double deltaH=0;         // interval over which hydrophobicity term turns from
       vector<double> h_coeff; // hydrophobicity coefficients for each atom in the PDB file
@@ -173,8 +171,6 @@ namespace PLMD
       keys.add("optional", "DELTARMIN", "");
       keys.add("optional", "RMAX", "");
       keys.add("optional", "DELTARMAX", "");
-      keys.add("optional", "CMIN", "");
-      keys.add("optional", "DELTAC", "");
       keys.add("optional", "PMIN", "");
       keys.add("optional", "DELTAP", "");
       keys.add("optional", "HMIN", "");
@@ -369,16 +365,6 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
         deltaRmax = 0.15;
       cout << "deltaRmax = " << deltaRmax << " nm" << endl;
 
-      parse("CMIN", Cmin);
-      if (!Cmin)
-        Cmin = 0.; 
-      cout << "CMIN = " << Cmin << endl;
-
-      parse("DELTAC", deltaC); 
-      if (!deltaC)
-        deltaC = 5; 
-      cout << "DELTAC = " << deltaC << endl;
-
       parse("PMIN", Pmin);
       if (!Pmin)
         Pmin = 0; 
@@ -435,8 +421,7 @@ This does not seem to be affected by the environment variable $PLUMED_NUM_THREAD
       {
         probes.push_back(Probe(i, restart_probes,
                                Rmin, deltaRmin, 
-                               Rmax, deltaRmax, 
-                               Cmin, deltaC, 
+                               Rmax, deltaRmax,
                                Pmin, deltaP,
                                Hmin, deltaH, h_coeff,
                                kpert, kxplor,pertstride,
