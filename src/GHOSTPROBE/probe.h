@@ -27,6 +27,7 @@ class Probe
   string pertype;
   unsigned pertstride; // We apply a full random perturbation every pertstride steps
   double zero_tol=1e-10; //tolerance for zero values
+  double theta=5.;
   
   //stuff
   unsigned n_atoms;
@@ -61,12 +62,12 @@ class Probe
   vector<double> dP_dz;
   void calculate_P(); 
 
-  vector<double> clash;
-  double total_clash;
-  vector<double> d_clash_dx;
-  vector<double> d_clash_dy;
-  vector<double> d_clash_dz;
-  void calculate_clash();
+  double mind;
+  vector<double> exp_rj;
+  vector<double> d_mind_dx;
+  vector<double> d_mind_dy;
+  vector<double> d_mind_dz;
+  void calculate_mind();
 
   double C;
   vector<double> dC_dx;

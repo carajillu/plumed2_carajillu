@@ -60,11 +60,11 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
   d_enclosure_dy=vector<double>(n_atoms,0);
   d_enclosure_dz=vector<double>(n_atoms,0);
 
-  clash=vector<double>(n_atoms,0);
-  total_clash=0;
-  d_clash_dx=vector<double>(n_atoms,0);
-  d_clash_dy=vector<double>(n_atoms,0);
-  d_clash_dz=vector<double>(n_atoms,0);
+  mind=0;
+  exp_rj=vector<double>(n_atoms,0);
+  d_mind_dx=vector<double>(n_atoms,0);
+  d_mind_dy=vector<double>(n_atoms,0);
+  d_mind_dz=vector<double>(n_atoms,0);
 
   hydrophobicity=0;
   d_hydrophobicity_dx=vector<double>(n_atoms,0);
@@ -230,6 +230,12 @@ void Probe::calculate_r(vector<double> atoms_x, vector<double> atoms_y, vector<d
 
    r[j]=sqrt(pow(rx[j],2)+pow(ry[j],2)+pow(rz[j],2));
 
+   if (r[j]<min_r)
+   {
+    min_r=r[j];
+    j_min_r=j;
+   }
+
    if (dxcalc)
    {
    if (r[j]<zero_tol)
@@ -242,12 +248,6 @@ void Probe::calculate_r(vector<double> atoms_x, vector<double> atoms_y, vector<d
    dr_dx[j]=rx[j]/r[j];
    dr_dy[j]=ry[j]/r[j];
    dr_dz[j]=rz[j]/r[j];
-   }
-
-   if (r[j]<min_r)
-   {
-    min_r=r[j];
-    j_min_r=j;
    }
  }
 }
@@ -298,46 +298,58 @@ void Probe::calculate_P()
  }
 }
 
-void Probe::calculate_clash()
+void Probe::calculate_mind()
 {
- total_clash=0; 
+ 
+ // overlap safeguard. Not sure it really is needed since we have the math trick
+ 
+ if (min_r < 0.01)
+ {
+  mind = 0;
+  std::fill(d_mind_dx.begin(), d_mind_dx.end(), 0);
+  std::fill(d_mind_dy.begin(), d_mind_dy.end(), 0);
+  std::fill(d_mind_dz.begin(), d_mind_dz.end(), 0);
+  return;
+ }
+ 
+ //This includes a math trick to stop exp_rj[j] from overflowing
+ double sum_exp=0;
+ double max_val=theta/min_r;
+
+ #pragma omp parallel for reduction(+:sum_exp)
  for (unsigned j=0; j<n_atoms; j++)
  {
-  if (r[j] >= Rmin+deltaRmin)
-  {
-   clash[j]=0;
-   d_clash_dx[j]=0;
-   d_clash_dy[j]=0;
-   d_clash_dz[j]=0;
-   continue;
-  }
-  double m_r=COREFUNCTIONS::m_v(r[j],Rmin,deltaRmin);
-  double dm_dr=COREFUNCTIONS::dm_dv(deltaRmin);
+  exp_rj[j]=exp(theta/r[j]-max_val);
+  sum_exp+=exp_rj[j];
+ }
+ 
+ double denom=max_val+log(sum_exp);
+ mind=theta/denom;
 
-  clash[j]=COREFUNCTIONS::Soff_m(m_r,1);
-  if (dxcalc)
-  {
-  d_clash_dx[j]=COREFUNCTIONS::dSoff_dm(m_r,1)*dm_dr*dr_dx[j];
-  d_clash_dy[j]=COREFUNCTIONS::dSoff_dm(m_r,1)*dm_dr*dr_dy[j];
-  d_clash_dz[j]=COREFUNCTIONS::dSoff_dm(m_r,1)*dm_dr*dr_dz[j];
-  }
-  total_clash+=clash[j];
+ double d_mind=-(theta/(denom*denom))*1/(sum_exp);
+ #pragma omp parallel for
+ for (unsigned j=0; j<n_atoms; j++)
+ {
+  d_mind_dx[j]=d_mind*exp_rj[j]*(-theta/(r[j]*r[j]))*dr_dx[j];
+  d_mind_dy[j]=d_mind*exp_rj[j]*(-theta/(r[j]*r[j]))*dr_dy[j];
+  d_mind_dz[j]=d_mind*exp_rj[j]*(-theta/(r[j]*r[j]))*dr_dz[j];
+  //cout << j << " " << d_mind_dx[j] << " " << d_mind_dy[j] << " " << d_mind_dz[j] << endl;
  }
 }
 
 void Probe::calculate_C()
 {
- calculate_clash();
- double m_clash=COREFUNCTIONS::m_v(total_clash,Cmin,deltaC);
- double dm_clash=COREFUNCTIONS::dm_dv(deltaC);
- C=COREFUNCTIONS::Soff_m(m_clash,1);
+ calculate_mind();
+ double m_mind=COREFUNCTIONS::m_v(mind,Rmin,deltaRmin);
+ double dm_mind=COREFUNCTIONS::dm_dv(deltaRmin);
+ C=COREFUNCTIONS::Son_m(m_mind,1);
  if (dxcalc)
  {
   for (unsigned j=0; j<n_atoms; j++)
    {
-    dC_dx[j]=COREFUNCTIONS::dSoff_dm(m_clash,1)*dm_clash*d_clash_dx[j];
-    dC_dy[j]=COREFUNCTIONS::dSoff_dm(m_clash,1)*dm_clash*d_clash_dy[j];
-    dC_dz[j]=COREFUNCTIONS::dSoff_dm(m_clash,1)*dm_clash*d_clash_dz[j];
+    dC_dx[j]=COREFUNCTIONS::dSon_dm(m_mind,1)*dm_mind*d_mind_dx[j];
+    dC_dy[j]=COREFUNCTIONS::dSon_dm(m_mind,1)*dm_mind*d_mind_dy[j];
+    dC_dz[j]=COREFUNCTIONS::dSon_dm(m_mind,1)*dm_mind*d_mind_dz[j];
    }
  }
 }
@@ -550,7 +562,7 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
   if (step==0)
   {
    wfile.open(filename.c_str());
-   wfile << "ID Step dx dy dz pertype min_r_serial min_r enclosure P clash C hydrophobicity H activity" << endl;
+   wfile << "ID Step dx dy dz pertype min_r_serial min_r enclosure P mind C hydrophobicity H activity" << endl;
   }
   else
    wfile.open(filename.c_str(),std::ios_base::app);
@@ -567,7 +579,7 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
         << d_activity_dprobe[0] << " " << d_activity_dprobe[1] << " "  << d_activity_dprobe[2] << " "
         << pertype << " " << atoms[j_min_r].serial() << " " << min_r << " " 
         << total_enclosure << " " << P << " " 
-        << total_clash << " " << C << " "
+        << mind << " " << C << " "
         << hydrophobicity << " " << H << " "
         << activity << endl;
   wfile.close();
