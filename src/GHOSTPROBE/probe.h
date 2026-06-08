@@ -24,7 +24,7 @@ class Probe
   double Kxplor;
   string pertype;
   unsigned pertstride; // We apply a full random perturbation every pertstride steps
-  double zero_tol=1e-10; //tolerance for zero values
+  double zero_tol=1e-7; //tolerance for zero values
   double theta=5.;
   
   //stuff

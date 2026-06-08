@@ -187,17 +187,22 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
    //cout << " Step "<< step << ": activity = " << activity << ". Doing nothing" << endl;
    pertype="none";
   }
-  else if (P==0) //probe is way too far, move it towards the centre of the protein
+  else if (P<zero_tol) //probe is way too far, move it towards the centre of the protein
   { 
-   pertype="centroid";
+   pertype="p_centroid";
    bring_to_centroid();
    //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function bring_to_centroid()" << endl;
   }
-  else if (C==0) //probe is completely occluded, move at random
+  else if (C<zero_tol) //probe is completely occluded, move at random
   {
     //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function rand_pert()" << endl;
     pertype="c_random";
     rand_pert();
+  }
+  else if (H<zero_tol)
+  {
+    pertype="h_centroid";
+    bring_to_centroid();
   }
   else if (abs(d_activity_dprobe[0])>0 or abs(d_activity_dprobe[1])>0 or abs(d_activity_dprobe[2])>0) // If neither C nor P are 0 AND at least on of the probe derivatives is not zero either (probe dxyz=0 can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
   {
@@ -382,17 +387,17 @@ void Probe::calculate_hydrophobicity()
   // Safeguard for total_enclosure==0
   if (total_enclosure==0)
   {
-    fill(d_hydrophobicity_dx.begin(),d_activity_dx.end(),0);
-    fill(d_hydrophobicity_dy.begin(),d_activity_dy.end(),0);
-    fill(d_hydrophobicity_dz.begin(),d_activity_dz.end(),0);
+    std::fill(d_hydrophobicity_dx.begin(),d_hydrophobicity_dx.end(),0);
+    std::fill(d_hydrophobicity_dy.begin(),d_hydrophobicity_dy.end(),0);
+    std::fill(d_hydrophobicity_dz.begin(),d_hydrophobicity_dz.end(),0);
     return;
   }
   
   hydrophobicity_numerator=0;
   hydrophobicity=0;
-  d_hydrophobicity_dx=vector<double>(n_atoms,0);
-  d_hydrophobicity_dy=vector<double>(n_atoms,0);
-  d_hydrophobicity_dz=vector<double>(n_atoms,0);
+  std::fill(d_hydrophobicity_dx.begin(), d_hydrophobicity_dx.end(), 0.0);
+  std::fill(d_hydrophobicity_dy.begin(), d_hydrophobicity_dy.end(), 0.0);
+  std::fill(d_hydrophobicity_dz.begin(), d_hydrophobicity_dz.end(), 0.0);
   for (unsigned j=0; j<n_atoms; j++)
   {
    hydrophobicity_numerator+=H_coeff[j]*enclosure[j];
