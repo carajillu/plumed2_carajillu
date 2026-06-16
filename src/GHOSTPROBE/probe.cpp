@@ -128,9 +128,9 @@ void Probe::dx_pert()
 {
   double k=(1-activity);
   double norm=sqrt(pow(d_activity_dprobe[0],2)+pow(d_activity_dprobe[1],2)+pow(d_activity_dprobe[2],2));
-  xyz[0]-=k*Kpert*(d_activity_dprobe[0]/norm);
-  xyz[1]-=k*Kpert*(d_activity_dprobe[1]/norm);
-  xyz[2]-=k*Kpert*(d_activity_dprobe[2]/norm);
+  xyz[0]-=k*Kpert*(abs(d_activity_dprobe[0])/norm);
+  xyz[1]-=k*Kpert*(abs(d_activity_dprobe[1])/norm);
+  xyz[2]-=k*Kpert*(abs(d_activity_dprobe[2])/norm);
 }
 
 void Probe::xplor_pert()
