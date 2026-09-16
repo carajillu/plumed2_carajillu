@@ -15,8 +15,6 @@ class Probe
   double deltaRmin; // interval over which contact terms are turned on and off
   double Rmax; // distance above which an atom is considered to be too far away from the probe*
   double deltaRmax; // interval over which contact terms are turned on and off
-  double Cmin; // packing factor below which depth term equals 0
-  double deltaC; // interval over which depth term turns from 0 to 1
   double Pmin; // packing factor below which depth term equals 0
   double deltaP; // interval over which depth term turns from 0 to 1
   vector<double> H_coeff; // hydrophobicity coefficients for each atom in the PDB file
@@ -26,7 +24,8 @@ class Probe
   double Kxplor;
   string pertype;
   unsigned pertstride; // We apply a full random perturbation every pertstride steps
-  double zero_tol=1e-10; //tolerance for zero values
+  double zero_tol=1e-7; //tolerance for zero values
+  double theta=5.;
   
   //stuff
   unsigned n_atoms;
@@ -61,12 +60,12 @@ class Probe
   vector<double> dP_dz;
   void calculate_P(); 
 
-  vector<double> clash;
-  double total_clash;
-  vector<double> d_clash_dx;
-  vector<double> d_clash_dy;
-  vector<double> d_clash_dz;
-  void calculate_clash();
+  double mind;
+  vector<double> exp_rj;
+  vector<double> d_mind_dx;
+  vector<double> d_mind_dy;
+  vector<double> d_mind_dz;
+  void calculate_mind();
 
   double C;
   vector<double> dC_dx;
@@ -116,8 +115,7 @@ class Probe
  public:
     Probe(unsigned Probe_id, bool restart_probes,
           double RMin, double DeltaRmin, 
-          double RMax, double DeltaRmax, 
-          double phimin, double deltaphi, 
+          double RMax, double DeltaRmax,
           double psimin, double deltapsi,
           double hmin, double deltah, vector<double> h_coeff,
           double kpert, double kxplor, unsigned Pertstride,

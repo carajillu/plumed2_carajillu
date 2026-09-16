@@ -18,8 +18,7 @@ using namespace COREFUNCTIONS;
 
 Probe::Probe(unsigned Probe_id, bool Restart_probes,
             double RMin, double DeltaRmin, 
-            double RMax, double DeltaRmax, 
-            double phimin, double deltaphi, 
+            double RMax, double DeltaRmax,
             double psimin, double deltapsi,
             double hmin, double deltah, vector<double> h_coeff,
             double kpert, double kxplor, unsigned Pertstride,
@@ -33,8 +32,6 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
   deltaRmin=DeltaRmin; // interval over which contact terms are turned on and off
   Rmax=RMax; // distance above which an atom is considered to be too far away from the probe*
   deltaRmax=DeltaRmax; // interval over which contact terms are turned on and off
-  Cmin=phimin; 
-  deltaC=deltaphi;
   Pmin=psimin; 
   deltaP=deltapsi;
   Hmin=hmin;
@@ -60,11 +57,11 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
   d_enclosure_dy=vector<double>(n_atoms,0);
   d_enclosure_dz=vector<double>(n_atoms,0);
 
-  clash=vector<double>(n_atoms,0);
-  total_clash=0;
-  d_clash_dx=vector<double>(n_atoms,0);
-  d_clash_dy=vector<double>(n_atoms,0);
-  d_clash_dz=vector<double>(n_atoms,0);
+  mind=0;
+  exp_rj=vector<double>(n_atoms,0);
+  d_mind_dx=vector<double>(n_atoms,0);
+  d_mind_dy=vector<double>(n_atoms,0);
+  d_mind_dz=vector<double>(n_atoms,0);
 
   hydrophobicity=0;
   d_hydrophobicity_dx=vector<double>(n_atoms,0);
@@ -131,9 +128,9 @@ void Probe::dx_pert()
 {
   double k=(1-activity);
   double norm=sqrt(pow(d_activity_dprobe[0],2)+pow(d_activity_dprobe[1],2)+pow(d_activity_dprobe[2],2));
-  xyz[0]-=k*Kpert*(d_activity_dprobe[0]/norm);
-  xyz[1]-=k*Kpert*(d_activity_dprobe[1]/norm);
-  xyz[2]-=k*Kpert*(d_activity_dprobe[2]/norm);
+  xyz[0]-=k*Kpert*(d_activity_dprobe[0])/norm;
+  xyz[1]-=k*Kpert*(d_activity_dprobe[1])/norm;
+  xyz[2]-=k*Kpert*(d_activity_dprobe[2])/norm;
 }
 
 void Probe::xplor_pert()
@@ -190,17 +187,22 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
    //cout << " Step "<< step << ": activity = " << activity << ". Doing nothing" << endl;
    pertype="none";
   }
-  else if (P==0) //probe is way too far, move it towards the centre of the protein
+  else if (P<zero_tol) //probe is way too far, move it towards the centre of the protein
   { 
-   pertype="centroid";
+   pertype="p_centroid";
    bring_to_centroid();
    //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function bring_to_centroid()" << endl;
   }
-  else if (C==0) //probe is completely occluded, move at random
+  else if (C<zero_tol) //probe is completely occluded, move at random
   {
     //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function rand_pert()" << endl;
     pertype="c_random";
     rand_pert();
+  }
+  else if (H<zero_tol)
+  {
+    pertype="h_centroid";
+    bring_to_centroid();
   }
   else if (abs(d_activity_dprobe[0])>0 or abs(d_activity_dprobe[1])>0 or abs(d_activity_dprobe[2])>0) // If neither C nor P are 0 AND at least on of the probe derivatives is not zero either (probe dxyz=0 can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
   {
@@ -230,6 +232,12 @@ void Probe::calculate_r(vector<double> atoms_x, vector<double> atoms_y, vector<d
 
    r[j]=sqrt(pow(rx[j],2)+pow(ry[j],2)+pow(rz[j],2));
 
+   if (r[j]<min_r)
+   {
+    min_r=r[j];
+    j_min_r=j;
+   }
+
    if (dxcalc)
    {
    if (r[j]<zero_tol)
@@ -242,12 +250,6 @@ void Probe::calculate_r(vector<double> atoms_x, vector<double> atoms_y, vector<d
    dr_dx[j]=rx[j]/r[j];
    dr_dy[j]=ry[j]/r[j];
    dr_dz[j]=rz[j]/r[j];
-   }
-
-   if (r[j]<min_r)
-   {
-    min_r=r[j];
-    j_min_r=j;
    }
  }
 }
@@ -298,46 +300,70 @@ void Probe::calculate_P()
  }
 }
 
-void Probe::calculate_clash()
+void Probe::calculate_mind()
 {
- total_clash=0; 
+ 
+ // overlap safeguard. Not sure it really is needed since we have the math trick
+ 
+ if (min_r < 0.01)
+ {
+  mind = 0;
+  std::fill(d_mind_dx.begin(), d_mind_dx.end(), 0);
+  std::fill(d_mind_dy.begin(), d_mind_dy.end(), 0);
+  std::fill(d_mind_dz.begin(), d_mind_dz.end(), 0);
+  return;
+ }
+ 
+ //This includes a math trick to stop exp_rj[j] from overflowing
+ double sum_exp=0;
+ double max_val=theta/min_r;
+
+ #pragma omp parallel for reduction(+:sum_exp)
  for (unsigned j=0; j<n_atoms; j++)
  {
-  if (r[j] >= Rmin+deltaRmin)
+  if (r[j] > Rmax+deltaRmax)
   {
-   clash[j]=0;
-   d_clash_dx[j]=0;
-   d_clash_dy[j]=0;
-   d_clash_dz[j]=0;
-   continue;
+    exp_rj[j]=0;
+    continue;
   }
-  double m_r=COREFUNCTIONS::m_v(r[j],Rmin,deltaRmin);
-  double dm_dr=COREFUNCTIONS::dm_dv(deltaRmin);
+  exp_rj[j]=exp(theta/r[j]-max_val);
+  sum_exp+=exp_rj[j];
+ }
+ 
+ double denom=max_val+log(sum_exp);
+ mind=theta/denom;
 
-  clash[j]=COREFUNCTIONS::Soff_m(m_r,1);
-  if (dxcalc)
+ double d_mind=-(theta/(denom*denom))*1/(sum_exp);
+ #pragma omp parallel for
+ for (unsigned j=0; j<n_atoms; j++)
+ {
+  if (r[j] > Rmax+deltaRmax)
   {
-  d_clash_dx[j]=COREFUNCTIONS::dSoff_dm(m_r,1)*dm_dr*dr_dx[j];
-  d_clash_dy[j]=COREFUNCTIONS::dSoff_dm(m_r,1)*dm_dr*dr_dy[j];
-  d_clash_dz[j]=COREFUNCTIONS::dSoff_dm(m_r,1)*dm_dr*dr_dz[j];
+    d_mind_dx[j]=0;
+    d_mind_dy[j]=0;
+    d_mind_dz[j]=0;
+    continue;
   }
-  total_clash+=clash[j];
+  d_mind_dx[j]=d_mind*exp_rj[j]*(-theta/(r[j]*r[j]))*dr_dx[j];
+  d_mind_dy[j]=d_mind*exp_rj[j]*(-theta/(r[j]*r[j]))*dr_dy[j];
+  d_mind_dz[j]=d_mind*exp_rj[j]*(-theta/(r[j]*r[j]))*dr_dz[j];
+  //cout << j << " " << d_mind_dx[j] << " " << d_mind_dy[j] << " " << d_mind_dz[j] << endl;
  }
 }
 
 void Probe::calculate_C()
 {
- calculate_clash();
- double m_clash=COREFUNCTIONS::m_v(total_clash,Cmin,deltaC);
- double dm_clash=COREFUNCTIONS::dm_dv(deltaC);
- C=COREFUNCTIONS::Soff_m(m_clash,1);
+ calculate_mind();
+ double m_mind=COREFUNCTIONS::m_v(mind,Rmin,deltaRmin);
+ double dm_mind=COREFUNCTIONS::dm_dv(deltaRmin);
+ C=COREFUNCTIONS::Son_m(m_mind,1);
  if (dxcalc)
  {
   for (unsigned j=0; j<n_atoms; j++)
    {
-    dC_dx[j]=COREFUNCTIONS::dSoff_dm(m_clash,1)*dm_clash*d_clash_dx[j];
-    dC_dy[j]=COREFUNCTIONS::dSoff_dm(m_clash,1)*dm_clash*d_clash_dy[j];
-    dC_dz[j]=COREFUNCTIONS::dSoff_dm(m_clash,1)*dm_clash*d_clash_dz[j];
+    dC_dx[j]=COREFUNCTIONS::dSon_dm(m_mind,1)*dm_mind*d_mind_dx[j];
+    dC_dy[j]=COREFUNCTIONS::dSon_dm(m_mind,1)*dm_mind*d_mind_dy[j];
+    dC_dz[j]=COREFUNCTIONS::dSon_dm(m_mind,1)*dm_mind*d_mind_dz[j];
    }
  }
 }
@@ -361,17 +387,17 @@ void Probe::calculate_hydrophobicity()
   // Safeguard for total_enclosure==0
   if (total_enclosure==0)
   {
-    fill(d_hydrophobicity_dx.begin(),d_activity_dx.end(),0);
-    fill(d_hydrophobicity_dy.begin(),d_activity_dy.end(),0);
-    fill(d_hydrophobicity_dz.begin(),d_activity_dz.end(),0);
+    std::fill(d_hydrophobicity_dx.begin(),d_hydrophobicity_dx.end(),0);
+    std::fill(d_hydrophobicity_dy.begin(),d_hydrophobicity_dy.end(),0);
+    std::fill(d_hydrophobicity_dz.begin(),d_hydrophobicity_dz.end(),0);
     return;
   }
   
   hydrophobicity_numerator=0;
   hydrophobicity=0;
-  d_hydrophobicity_dx=vector<double>(n_atoms,0);
-  d_hydrophobicity_dy=vector<double>(n_atoms,0);
-  d_hydrophobicity_dz=vector<double>(n_atoms,0);
+  std::fill(d_hydrophobicity_dx.begin(), d_hydrophobicity_dx.end(), 0.0);
+  std::fill(d_hydrophobicity_dy.begin(), d_hydrophobicity_dy.end(), 0.0);
+  std::fill(d_hydrophobicity_dz.begin(), d_hydrophobicity_dz.end(), 0.0);
   for (unsigned j=0; j<n_atoms; j++)
   {
    hydrophobicity_numerator+=H_coeff[j]*enclosure[j];
@@ -550,7 +576,7 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
   if (step==0)
   {
    wfile.open(filename.c_str());
-   wfile << "ID Step dx dy dz pertype min_r_serial min_r enclosure P clash C hydrophobicity H activity" << endl;
+   wfile << "ID Step dx dy dz pertype min_r_serial min_r enclosure P mind C hydrophobicity H activity" << endl;
   }
   else
    wfile.open(filename.c_str(),std::ios_base::app);
@@ -567,7 +593,7 @@ void Probe::print_probe_movement(int step, vector<PLMD::AtomNumber> atoms, unsig
         << d_activity_dprobe[0] << " " << d_activity_dprobe[1] << " "  << d_activity_dprobe[2] << " "
         << pertype << " " << atoms[j_min_r].serial() << " " << min_r << " " 
         << total_enclosure << " " << P << " " 
-        << total_clash << " " << C << " "
+        << mind << " " << C << " "
         << hydrophobicity << " " << H << " "
         << activity << endl;
   wfile.close();
