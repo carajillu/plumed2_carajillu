@@ -38,7 +38,7 @@ Probe::Probe(unsigned Probe_id, bool Restart_probes,
   deltaH=deltah;
   H_coeff=h_coeff; // hydrophobicity coefficients for each atom in the PDB file
   Kpert=kpert;
-  Kxplor=kxplor;
+  //Kxplor=kxplor;
   pertstride=Pertstride;
 
   //allocate vectors
@@ -133,27 +133,6 @@ void Probe::dx_pert()
   xyz[2]-=k*Kpert*(d_activity_dprobe[2])/norm;
 }
 
-void Probe::xplor_pert()
-{
-  double rand_x=COREFUNCTIONS::random_double(-1,1);
-  double rand_y=COREFUNCTIONS::random_double(-1,1);
-  double rand_z=COREFUNCTIONS::random_double(-1,1);
-  double norm=sqrt(pow(rand_x,2)+pow(rand_y,2)+pow(rand_z,2));
-  xyz[0]+=Kxplor*(rand_x/norm);
-  xyz[1]+=Kxplor*(rand_y/norm);
-  xyz[2]+=Kxplor*(rand_z/norm);
-  return;
-}
-
-void Probe::bring_to_centroid()
-{
- //cout << "enclosure = " << enclosure << ". Moving probe towards the protein centroid." << endl;
-  double norm=sqrt(pow((centroid[0]-xyz[0]),2)+pow((centroid[1]-xyz[1]),2)+pow((centroid[2]-xyz[2]),2));
-  xyz[0]+=Kxplor/norm*(centroid[0]-xyz[0]);
-  xyz[1]+=Kxplor/norm*(centroid[1]-xyz[1]);
-  xyz[2]+=Kxplor/norm*(centroid[2]-xyz[2]);
-}
-
 void Probe::reset_probe(vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z)
 {
   size_t xplor_j=aidefunctions::sample_random_index(n_atoms);
@@ -176,22 +155,10 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
    pertype="init_random";
    rand_pert();
   }
-  else if (step%pertstride==0)
-  {
-   //cout << " Step "<< step << ": calling function rand_pert()" << endl;
-   pertype="xplor_random";
-   xplor_pert();
-  }
   else if (activity==1)
   {
    //cout << " Step "<< step << ": activity = " << activity << ". Doing nothing" << endl;
    pertype="none";
-  }
-  else if (P<zero_tol) //probe is way too far, move it towards the centre of the protein
-  { 
-   pertype="p_centroid";
-   bring_to_centroid();
-   //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function bring_to_centroid()" << endl;
   }
   else if (C<zero_tol) //probe is completely occluded, move at random
   {
@@ -199,10 +166,11 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
     pertype="c_random";
     rand_pert();
   }
-  else if (H<zero_tol)
-  {
-    pertype="h_centroid";
-    bring_to_centroid();
+  else if (P<zero_tol or H<zero_tol) //probe is way too far, we consider it unbound and now it's gonna bind somwehere else
+  { 
+   pertype="restart";
+   reset_probe(atoms_x,atoms_y,atoms_z);
+   //cout << " Step "<< step << ": p = " << total_enclosure << " c = " << total_clash << " activity = " << activity << ". Calling function bring_to_centroid()" << endl;
   }
   else if (abs(d_activity_dprobe[0])>0 or abs(d_activity_dprobe[1])>0 or abs(d_activity_dprobe[2])>0) // If neither C nor P are 0 AND at least on of the probe derivatives is not zero either (probe dxyz=0 can happen when Rmin>0, because the interval is so short that all contributing atoms are 1 and the rest are 0)
   {
@@ -212,7 +180,7 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
   }
   else //
   {
-    pertype="else_random";
+    pertype="else_random"; //this should never happen, but it's a safeguard
     rand_pert();
   }
   //cout << pertype << endl;

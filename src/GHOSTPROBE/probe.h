@@ -21,7 +21,7 @@ class Probe
   double Hmin; // hydrophobicity factor below which  hydrophobicity term equals 0
   double deltaH; // interval over which hydrophobicity term turns from 0 to 1
   double Kpert;
-  double Kxplor;
+  //double Kxplor;
   string pertype;
   unsigned pertstride; // We apply a full random perturbation every pertstride steps
   double zero_tol=1e-7; //tolerance for zero values
