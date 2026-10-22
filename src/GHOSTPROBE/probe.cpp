@@ -141,6 +141,14 @@ void Probe::reset_probe(vector<double> atoms_x,vector<double> atoms_y, vector<do
   return;
 }
 
+void Probe::bring_to_centroid()
+{
+ //cout << "enclosure = " << enclosure << ". Moving probe towards the protein centroid." << endl;
+  double norm=sqrt(pow((centroid[0]-xyz[0]),2)+pow((centroid[1]-xyz[1]),2)+pow((centroid[2]-xyz[2]),2));
+  xyz[0]+=Kpert/norm*(centroid[0]-xyz[0]);
+  xyz[1]+=Kpert/norm*(centroid[1]-xyz[1]);
+  xyz[2]+=Kpert/norm*(centroid[2]-xyz[2]);
+}
 
 void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> atoms_y, vector<double> atoms_z)
 {
@@ -154,6 +162,11 @@ void Probe::perturb_probe(unsigned step, vector<double> atoms_x,vector<double> a
   {
    pertype="init_random";
    rand_pert();
+  }
+  else if (step%pertstride==0)
+  {
+   pertype="centroid";
+   bring_to_centroid();
   }
   else if (activity==1)
   {
